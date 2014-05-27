@@ -461,7 +461,7 @@ module ChefMetalFog
       if machine_spec.location['is_windows']
         ChefMetal::ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options])
       else
-        ChefMetal::ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options])
+        ChefMetal::ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], {})
       end
     end
 
