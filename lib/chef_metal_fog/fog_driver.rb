@@ -312,6 +312,7 @@ module ChefMetalFog
     end
 
     def wait_for_transport(action_handler, machine_spec, machine_options, server)
+      driver = self
       transport = transport_for(machine_spec, server)
       if !transport.available?
         if action_handler.should_perform_actions
@@ -320,6 +321,7 @@ module ChefMetalFog
           _self = self
 
           server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
+            transport = driver.transport_for(machine_spec, server)
             transport.available?
           end
           action_handler.report_progress "#{machine_spec.name} is now connectable"
