@@ -45,7 +45,7 @@ module ChefMetalFog
           if extra_tags.size > 0 || different_tags.size > 0
             tags_description = [ "Update tags for #{machine_spec.name} on #{driver_url}" ]
             tags_description += extra_tags.map { |tag| "  Add #{tag} = #{tags[tag].inspect}" }
-            tags_description += different_tags.map { |tag| "  Update #{tag.name} from #{tag.value.inspect} to #{tags[tag.name].inspect}"}
+            tags_description += different_tags.map { |tag_name, tag_value| "  Update #{tag_name} from #{tag_value.inspect} to #{tags[tag_name].inspect}"}
             action_handler.perform_action tags_description do
               # TODO should we narrow this down to just extra/different tags or
               # is it OK to just pass 'em all?  Certainly easier to do the
