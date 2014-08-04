@@ -41,6 +41,14 @@ module ChefMetalFog
             'creator' => creator,
             'allocated_at' => Time.now.to_i
           }
+
+          image_spec.machine_options ||= {}
+          image_spec.machine_options.merge!({
+            :bootstrap_options => {
+                :image_id => image_spec.location['image_id']
+            }
+          })
+
         end
       end
 
