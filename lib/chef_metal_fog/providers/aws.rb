@@ -56,6 +56,11 @@ module ChefMetalFog
         end
       end
 
+      def convergence_strategy_for(machine_spec, machine_options)
+        machine_options[:convergence_options][:ohai_hints] = { 'ec2' => ''}
+        super(machine_spec, machine_options)
+      end
+
       def self.get_aws_profile(driver_options, aws_account_id)
         aws_credentials = get_aws_credentials(driver_options)
         compute_options = driver_options[:compute_options] || {}
