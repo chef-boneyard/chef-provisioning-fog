@@ -244,6 +244,10 @@ module ChefMetalFog
       end
     end
 
+    def image_for(image_spec)
+      compute.images.get(image_spec.location['image_id'])
+    end
+
     def compute
       @compute ||= Fog::Compute.new(compute_options)
     end

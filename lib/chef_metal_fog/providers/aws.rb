@@ -20,6 +20,64 @@ module ChefMetalFog
         'ubuntu'
       end
 
+      def allocate_image(action_handler, image_spec, image_options, machine_spec)
+        if image_spec.location
+          image = compute.images.get(image_spec.location['image_id'])
+          if image
+            raise "The image already exists, why are you asking me to create it?  I can't do that, Dave."
+          end
+        end
+        action_handler.perform_action "Create image #{image_spec.name} from machine #{machine_spec.name} with options #{image_options.inspect}" do
+          opt = image_options.dup
+          response = compute.create_image(machine_spec.location['server_id'],
+                                       image_spec.name,
+                                       opt.delete(:description) || "The image formerly and currently named '#{image_spec.name}'",
+                                       opt.delete(:no_reboot) || false,
+                                       opt)
+          image_spec.location = {
+            'driver_url' => driver_url,
+            'driver_version' => ChefMetalFog::VERSION,
+            'image_id' => response.body['imageId'],
+            'creator' => creator,
+            'allocated_at' => Time.now.to_i
+          }
+
+          image_spec.machine_options ||= {}
+          image_spec.machine_options.merge!({
+            :bootstrap_options => {
+                :image_id => image_spec.location['image_id']
+            }
+          })
+
+        end
+      end
+
+      def ready_image(action_handler, image_spec, image_options)
+        if !image_spec.location
+          raise "Cannot ready an image that does not exist"
+        end
+        image = compute.images.get(image_spec.location['image_id'])
+        if !image.ready?
+          action_handler.report_progress "Waiting for image to be ready ..."
+          # TODO timeout
+          image.wait_for { ready? }
+          action_handler.report_progress "Image is ready!"
+        end
+      end
+
+      def destroy_image(action_handler, image_spec, image_options)
+        if !image_spec.location
+          return
+        end
+        image = compute.images.get(image_spec.location['image_id'])
+        if !image
+          return
+        end
+        delete_snapshots = image_options[:delete_snapshots]
+        delete_snapshots = true if delete_snapshots.nil?
+        image.deregister(delete_snapshots)
+      end
+
       def bootstrap_options_for(action_handler, machine_spec, machine_options)
         bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
