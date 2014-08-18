@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8 (8/18/2014)
+
+- [AWS] Image support!  Add AWS driver support for the chef-metal 0.14
+  `machine_image` resource! (@jkeiser / @johnewart)
+- [Joyent] Joyent support! fog:Joyent:<joyent_url> @potatosalad
+- [AWS] Automatic ec2 hints for ohai @patrick-wright
+- [AWS/Eucalyptus] add separate IAM server support @viglesiasce
+  ```ruby
+  with_driver 'fog:AWS', :compute_options => {
+    :aws_access_key_id => 'YYYYYYYYYYYYYYYYY',
+    :aws_secret_access_key => 'XXXXXXXXXXXXXXXXXXXXXXX',
+    :ec2_endpoint => 'http://10.111.1.136:8773/services/compute/',
+    :iam_endpoint => 'http://10.111.1.136:8773/services/Euare/'
+  }
+  ```
+  Or use the `EC2_URL` and `AWS_IAM_URL` environment variables a la Eucalyptus.
+  - Issue https://github.com/opscode/chef-metal-fog/issues/42 filed to get this
+    data as part of the URL itself so it can be effectively reinflated.
+- [AWS] fix crash accessing tags @msonnabaum
+
 ## 0.7.1 (7/15/2014)
 
 - Fix AWS support in Chef 11.12
