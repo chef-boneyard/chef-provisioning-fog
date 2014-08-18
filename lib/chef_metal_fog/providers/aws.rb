@@ -1,5 +1,6 @@
 require 'chef/log'
 require 'fog/aws'
+require 'uri'
 
 #   fog:AWS:<account_id>:<region>
 #   fog:AWS:<profile_name>
@@ -141,11 +142,11 @@ module ChefMetalFog
           elsif driver_options[:aws_profile]
             Chef::Log.debug("Using AWS profile #{driver_options[:aws_profile]}")
             aws_credentials[driver_options[:aws_profile]]
-          elsif ENV['AWS_ACCESS_KEY_ID']
+          elsif ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY']
             Chef::Log.debug("Using AWS environment variable access keys")
             {
-              :aws_access_key_id => ENV['AWS_ACCESS_KEY_ID'],
-              :aws_secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'],
+              :aws_access_key_id => ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY'],
+              :aws_secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'] || ENV['AWS_SECRET_KEY'],
               :aws_security_token => ENV['AWS_SECURITY_TOKEN'],
               :region => ENV['AWS_REGION']
             }
@@ -156,6 +157,19 @@ module ChefMetalFog
             Chef::Log.debug("Using AWS default profile")
             aws_credentials.default
           end
+        # Endpoint configuration
+        if compute_options[:ec2_endpoint]
+          aws_profile[:ec2_endpoint] = compute_options[:ec2_endpoint]
+        elsif ENV['EC2_URL']
+          aws_profile[:ec2_endpoint] = ENV['EC2_URL']
+        end
+        if compute_options[:iam_endpoint]
+          aws_profile[:iam_endpoint] = compute_options[:iam_endpoint]
+        elsif ENV['AWS_IAM_URL']
+          aws_profile[:iam_endpoint] = ENV['AWS_IAM_URL']
+        else
+          aws_profile[:iam_endpoint] = "https://iam.amazonaws.com/"
+        end
 
         # Merge in account info for profile
         if aws_profile
@@ -207,7 +221,11 @@ module ChefMetalFog
           options = {
             :aws_access_key_id => aws_profile[:aws_access_key_id],
             :aws_secret_access_key => aws_profile[:aws_secret_access_key],
-            :aws_session_token => aws_profile[:aws_security_token]
+            :aws_session_token => aws_profile[:aws_security_token],
+            :host => URI(aws_profile[:iam_endpoint]).host,
+            :scheme => URI(aws_profile[:iam_endpoint]).scheme,
+            :port => URI(aws_profile[:iam_endpoint]).port,
+            :path => URI(aws_profile[:iam_endpoint]).path
           }
           options.delete_if { |key, value| value.nil? }
 
@@ -287,6 +305,7 @@ module ChefMetalFog
         new_compute_options[:aws_secret_access_key] = aws_profile[:aws_secret_access_key]
         new_compute_options[:aws_session_token] = aws_profile[:aws_security_token]
         new_defaults[:driver_options][:compute_options][:region] = aws_profile[:region]
+        new_defaults[:driver_options][:compute_options][:endpoint] = aws_profile[:ec2_endpoint]
 
         account_info = aws_account_info_for(result[:driver_options][:compute_options])
         new_config[:driver_options][:aws_account_info] = account_info
