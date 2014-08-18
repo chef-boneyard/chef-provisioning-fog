@@ -19,6 +19,8 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
         case new_driver.compute_options[:provider]
         when 'DigitalOcean'
           compute.destroy_key_pair(@current_id)
+        when 'Joyent'
+          compute.delete_key(@current_id)
         when 'OpenStack', 'Rackspace'
           compute.key_pairs.destroy(@current_id)
         else
@@ -56,6 +58,8 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       case new_driver.compute_options[:provider]
       when 'DigitalOcean'
         new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :openssh)]
+      when 'Joyent'
+        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :rfc4716md5fingerprint)]
       when 'OpenStack', 'Rackspace'
         new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :openssh)]
       else
@@ -94,6 +98,8 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
             case new_driver.compute_options[:provider]
             when 'DigitalOcean'
               compute.create_ssh_key(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
+            when 'Joyent'
+              compute.create_key(name: new_resource.name, key: Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
             when 'OpenStack'
               compute.create_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
             when 'Rackspace'
@@ -116,6 +122,8 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
         case new_driver.compute_options[:provider]
         when 'DigitalOcean'
           compute.create_ssh_key(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
+        when 'Joyent'
+          compute.create_key(name: new_resource.name, key: Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
         when 'OpenStack'
           compute.create_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
         when 'Rackspace'
@@ -209,6 +217,25 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       if current_key_pair
         @current_id = current_key_pair.id
         @current_fingerprint = current_key_pair ? compute.ssh_keys.get(@current_id).ssh_pub_key : nil
+      else
+        current_resource.action :delete
+      end
+    when 'Joyent'
+      current_key_pair = begin
+        compute.keys.get(new_resource.name)
+      rescue Fog::Compute::Joyent::Errors::NotFound
+        nil
+      end
+      if current_key_pair
+        @current_id = current_key_pair.name
+        @current_fingerprint = if current_key_pair.respond_to?(:fingerprint)
+          current_key_pair.fingerprint
+        elsif current_key_pair.respond_to?(:key)
+          public_key, format = Cheffish::KeyFormatter.decode(current_key_pair.key)
+          public_key.fingerprint
+        else
+          nil
+        end
       else
         current_resource.action :delete
       end
