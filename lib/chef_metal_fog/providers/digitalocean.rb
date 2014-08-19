@@ -50,6 +50,18 @@ module ChefMetalFog
         bootstrap_options
       end
 
+      def destroy_machine(action_handler, machine_spec, machine_options)
+        server = server_for(machine_spec)
+        if server && server.state != 'archive'
+          action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
+            server.destroy
+          end
+        end
+        machine_spec.location = nil
+        strategy = convergence_strategy_for(machine_spec, machine_options)
+        strategy.cleanup_convergence(action_handler, machine_spec)
+      end
+
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
         new_compute_options[:provider] = provider
