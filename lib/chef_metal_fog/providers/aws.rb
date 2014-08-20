@@ -311,6 +311,10 @@ module ChefMetalFog
         new_config[:driver_options][:aws_account_info] = account_info
         id = "#{account_info[:aws_account_id]}:#{result[:driver_options][:compute_options][:region]}"
 
+        # Make sure we're using a reasonable default AMI, for now this is Ubuntu 14.04 LTS
+        result[:machine_options][:bootstrap_options][:image_id] ||=
+            default_ami_for_region(result[:driver_options][:compute_options][:region])
+
         [result, id]
       end
 
@@ -343,6 +347,31 @@ module ChefMetalFog
         end
         result
       end
+
+      private
+      def self.default_ami_for_region(region)
+        Chef::Log.debug("Choosing default AMI for region '#{region}'")
+
+        case region
+        when 'ap-northeast-1'
+          'ami-c786dcc6'
+        when 'ap-southeast-1'
+          'ami-eefca7bc'
+        when 'ap-southeast-2'
+          'ami-996706a3'
+        when 'eu-west-1'
+          'ami-4ab46b3d'
+        when 'sa-east-1'
+          'ami-6770d87a'
+        when 'us-east-1'
+          'ami-d2ff23ba'
+        when 'us-west-1'
+          'ami-73717d36'
+        when 'us-west-2'
+          'ami-f1ce8bc1'
+        end
+      end
+
     end
   end
 end
