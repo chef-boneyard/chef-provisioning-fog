@@ -213,7 +213,6 @@ module ChefMetalFog
 
       def self.aws_account_info_for(aws_profile, iam_endpoint = nil)
         iam_endpoint = aws_profile[:iam_endpoint] if aws_profile[:iam_endpoint]
-        iam_endpoint ||= 'https://iam.amazonaws.com/'
 
         @@aws_account_info ||= {}
         @@aws_account_info[aws_profile[:aws_access_key_id]] ||= begin
