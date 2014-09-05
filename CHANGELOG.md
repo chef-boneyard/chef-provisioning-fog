@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9 (9/5/2014)
+
+- [AWS] Per-region default AMIs!
+- [AWS] Fix crash when pointed at an existing server when profile is not specified
+- [DigitalOcean] Don't try to destroy servers that are already dead (archived)
+
 ## 0.8 (8/18/2014)
 
 - [AWS] Image support!  Add AWS driver support for the chef-metal 0.14
