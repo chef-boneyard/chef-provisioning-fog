@@ -131,70 +131,66 @@ module ChefMetalFog
         # ENV['AWS_PROFILE']
         # ENV['DEFAULT_PROFILE']
         # 'default'
-        aws_profile = if compute_options[:aws_access_key_id]
-            Chef::Log.debug("Using AWS driver access key options")
-            {
-              :aws_access_key_id => compute_options[:aws_access_key_id],
-              :aws_secret_access_key => compute_options[:aws_secret_access_key],
-              :aws_security_token => compute_options[:aws_session_token],
-              :region => compute_options[:region]
-            }
-          elsif driver_options[:aws_profile]
-            Chef::Log.debug("Using AWS profile #{driver_options[:aws_profile]}")
-            aws_credentials[driver_options[:aws_profile]]
-          elsif ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY']
-            Chef::Log.debug("Using AWS environment variable access keys")
-            {
-              :aws_access_key_id => ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY'],
-              :aws_secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'] || ENV['AWS_SECRET_KEY'],
-              :aws_security_token => ENV['AWS_SECURITY_TOKEN'],
-              :region => ENV['AWS_REGION']
-            }
-          elsif ENV['AWS_PROFILE']
-            Chef::Log.debug("Using AWS profile #{ENV['AWS_PROFILE']} from AWS_PROFILE environment variable")
-            aws_credentials[ENV['AWS_PROFILE']]
-          else
-            Chef::Log.debug("Using AWS default profile")
-            aws_credentials.default
+        if compute_options[:aws_access_key_id]
+          Chef::Log.debug("Using AWS driver access key options")
+          aws_profile = {
+            :aws_access_key_id => compute_options[:aws_access_key_id],
+            :aws_secret_access_key => compute_options[:aws_secret_access_key],
+            :aws_security_token => compute_options[:aws_session_token],
+            :region => compute_options[:region]
+          }
+        elsif driver_options[:aws_profile]
+          Chef::Log.debug("Using AWS profile #{driver_options[:aws_profile]}")
+          aws_profile = aws_credentials[driver_options[:aws_profile]]
+        elsif ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY']
+          Chef::Log.debug("Using AWS environment variable access keys")
+          aws_profile = {
+            :aws_access_key_id => ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY'],
+            :aws_secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'] || ENV['AWS_SECRET_KEY'],
+            :aws_security_token => ENV['AWS_SECURITY_TOKEN'],
+            :region => ENV['AWS_REGION']
+          }
+        elsif ENV['AWS_PROFILE']
+          Chef::Log.debug("Using AWS profile #{ENV['AWS_PROFILE']} from AWS_PROFILE environment variable")
+          aws_profile = aws_credentials[ENV['AWS_PROFILE']]
+          if !aws_profile
+            raise "Environment variable AWS_PROFILE is set to #{ENV['AWS_PROFILE'].inspect} but your AWS config file does not contain that profile!"
           end
-        # Endpoint configuration
-        if compute_options[:ec2_endpoint]
-          aws_profile[:ec2_endpoint] = compute_options[:ec2_endpoint]
-        elsif ENV['EC2_URL']
-          aws_profile[:ec2_endpoint] = ENV['EC2_URL']
-        end
-        if compute_options[:iam_endpoint]
-          aws_profile[:iam_endpoint] = compute_options[:iam_endpoint]
-        elsif ENV['AWS_IAM_URL']
-          aws_profile[:iam_endpoint] = ENV['AWS_IAM_URL']
         else
-          aws_profile[:iam_endpoint] = "https://iam.amazonaws.com/"
+          Chef::Log.debug("Using AWS default profile")
+          aws_profile = aws_credentials.default
         end
+
+        default_ec2_endpoint = compute_options[:ec2_endpoint] || ENV['EC2_URL']
+        default_iam_endpoint = compute_options[:iam_endpoint] || ENV['AWS_IAM_URL']
 
         # Merge in account info for profile
         if aws_profile
-          aws_profile = aws_profile.merge(aws_account_info_for(aws_profile))
+          aws_profile = aws_profile.merge(aws_account_info_for(aws_profile, default_iam_endpoint))
         end
 
         # If no profile is found (or the profile is not the right account), search
         # for a profile that matches the given account ID
         if aws_account_id && (!aws_profile || aws_profile[:aws_account_id] != aws_account_id)
-          aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id)
+          aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id, iam_endpoint)
         end
 
         if !aws_profile
           raise "No AWS profile specified!  Are you missing something in the Chef config or ~/.aws/config?"
         end
 
+        aws_profile[:ec2_endpoint] ||= default_ec2_endpoint
+        aws_profile[:iam_endpoint] ||= default_iam_endpoint
+
         aws_profile.delete_if { |key, value| value.nil? }
         aws_profile
       end
 
-      def self.find_aws_profile_for_account_id(aws_credentials, aws_account_id)
+      def self.find_aws_profile_for_account_id(aws_credentials, aws_account_id, default_iam_endpoint=nil)
         aws_profile = nil
         aws_credentials.each do |profile_name, profile|
           begin
-            aws_account_info = aws_account_info_for(profile)
+            aws_account_info = aws_account_info_for(profile, default_iam_endpoint)
           rescue
             Chef::Log.warn("Could not connect to AWS profile #{aws_credentials[:name]}: #{$!}")
             Chef::Log.debug($!.backtrace.join("\n"))
@@ -215,18 +211,23 @@ module ChefMetalFog
         aws_profile
       end
 
-      def self.aws_account_info_for(aws_profile)
+      def self.aws_account_info_for(aws_profile, default_iam_endpoint = nil)
+        iam_endpoint = aws_profile[:iam_endpoint] || default_iam_endpoint
+
         @@aws_account_info ||= {}
         @@aws_account_info[aws_profile[:aws_access_key_id]] ||= begin
           options = {
+            # Endpoint configuration
             :aws_access_key_id => aws_profile[:aws_access_key_id],
             :aws_secret_access_key => aws_profile[:aws_secret_access_key],
-            :aws_session_token => aws_profile[:aws_security_token],
-            :host => URI(aws_profile[:iam_endpoint]).host,
-            :scheme => URI(aws_profile[:iam_endpoint]).scheme,
-            :port => URI(aws_profile[:iam_endpoint]).port,
-            :path => URI(aws_profile[:iam_endpoint]).path
+            :aws_session_token => aws_profile[:aws_security_token]
           }
+          if iam_endpoint
+            options[:host] = URI(iam_endpoint).host
+            options[:scheme] = URI(iam_endpoint).scheme
+            options[:port] = URI(iam_endpoint).port
+            options[:path] = URI(iam_endpoint).path
+          end
           options.delete_if { |key, value| value.nil? }
 
           iam = Fog::AWS::IAM.new(options)
