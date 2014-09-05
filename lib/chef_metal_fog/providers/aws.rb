@@ -161,12 +161,12 @@ module ChefMetalFog
           aws_profile = aws_credentials.default
         end
 
-        ec2_endpoint = compute_options[:ec2_endpoint] || ENV['EC2_URL']
-        iam_endpoint = compute_options[:iam_endpoint] || ENV['AWS_IAM_URL']
+        default_ec2_endpoint = compute_options[:ec2_endpoint] || ENV['EC2_URL']
+        default_iam_endpoint = compute_options[:iam_endpoint] || ENV['AWS_IAM_URL']
 
         # Merge in account info for profile
         if aws_profile
-          aws_profile = aws_profile.merge(aws_account_info_for(aws_profile, iam_endpoint))
+          aws_profile = aws_profile.merge(aws_account_info_for(aws_profile, default_iam_endpoint))
         end
 
         # If no profile is found (or the profile is not the right account), search
@@ -179,18 +179,18 @@ module ChefMetalFog
           raise "No AWS profile specified!  Are you missing something in the Chef config or ~/.aws/config?"
         end
 
-        aws_profile[:ec2_endpoint] ||= ec2_endpoint
-        aws_profile[:iam_endpoint] ||= iam_endpoint
+        aws_profile[:ec2_endpoint] ||= default_ec2_endpoint
+        aws_profile[:iam_endpoint] ||= default_iam_endpoint
 
         aws_profile.delete_if { |key, value| value.nil? }
         aws_profile
       end
 
-      def self.find_aws_profile_for_account_id(aws_credentials, aws_account_id, iam_endpoint=nil)
+      def self.find_aws_profile_for_account_id(aws_credentials, aws_account_id, default_iam_endpoint=nil)
         aws_profile = nil
         aws_credentials.each do |profile_name, profile|
           begin
-            aws_account_info = aws_account_info_for(profile, iam_endpoint)
+            aws_account_info = aws_account_info_for(profile, default_iam_endpoint)
           rescue
             Chef::Log.warn("Could not connect to AWS profile #{aws_credentials[:name]}: #{$!}")
             Chef::Log.debug($!.backtrace.join("\n"))
@@ -211,8 +211,8 @@ module ChefMetalFog
         aws_profile
       end
 
-      def self.aws_account_info_for(aws_profile, iam_endpoint = nil)
-        iam_endpoint = aws_profile[:iam_endpoint] if aws_profile[:iam_endpoint]
+      def self.aws_account_info_for(aws_profile, default_iam_endpoint = nil)
+        iam_endpoint = aws_profile[:iam_endpoint] || default_iam_endpoint
 
         @@aws_account_info ||= {}
         @@aws_account_info[aws_profile[:aws_access_key_id]] ||= begin
