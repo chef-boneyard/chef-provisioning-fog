@@ -127,7 +127,7 @@ module ChefMetalFog
         # Order of operations:
         # compute_options[:aws_access_key_id] / compute_options[:aws_secret_access_key] / compute_options[:aws_security_token] / compute_options[:region]
         # compute_options[:aws_profile]
-        # ENV['AWS_ACCESS_KEY_ID'] / ENV['AWS_SECRET_ACCESS_KEY'] / ENV['AWS_SECURITY_TOKEN'] / ENV['AWS_REGION']
+        # ENV['AWS_ACCESS_KEY_ID'] / ENV['AWS_SECRET_ACCESS_KEY'] / ENV['AWS_SECURITY_TOKEN'] / ENV['AWS_DEFAULT_REGION']
         # ENV['AWS_PROFILE']
         # ENV['DEFAULT_PROFILE']
         # 'default'
@@ -148,7 +148,7 @@ module ChefMetalFog
             :aws_access_key_id => ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY'],
             :aws_secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'] || ENV['AWS_SECRET_KEY'],
             :aws_security_token => ENV['AWS_SECURITY_TOKEN'],
-            :region => ENV['AWS_REGION']
+            :region => ENV['AWS_DEFAULT_REGION'] || ENV['AWS_REGION'] || ENV['EC2_REGION']
           }
         elsif ENV['AWS_PROFILE']
           Chef::Log.debug("Using AWS profile #{ENV['AWS_PROFILE']} from AWS_PROFILE environment variable")

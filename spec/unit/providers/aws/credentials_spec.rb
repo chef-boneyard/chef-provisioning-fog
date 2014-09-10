@@ -14,6 +14,9 @@ describe ChefMetalFog::Providers::AWS::Credentials do
 
     it "should load the correct values" do
       expect(described_class['default'][:aws_access_key_id]).to eq "12345"
+      expect(described_class['default'][:aws_secret_access_key]).to eq "abcde"
+      expect(described_class['default'][:region]).to eq "us-east-1"
+      expect(described_class['default'][:aws_session_token]).to eq "mysecret"
     end
 
     it "should load several profiles" do
