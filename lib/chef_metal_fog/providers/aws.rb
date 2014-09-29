@@ -172,7 +172,7 @@ module ChefMetalFog
         # If no profile is found (or the profile is not the right account), search
         # for a profile that matches the given account ID
         if aws_account_id && (!aws_profile || aws_profile[:aws_account_id] != aws_account_id)
-          aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id, iam_endpoint)
+          aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id, default_iam_endpoint)
         end
 
         if !aws_profile
