@@ -1,7 +1,9 @@
 require 'inifile'
 require 'csv'
 
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
     class AWS
       # Reads in a credentials file in Amazon's download format and presents the credentials to you
@@ -80,4 +82,6 @@ module ChefMetalFog
       end
     end
   end
+end
+end
 end

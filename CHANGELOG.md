@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10 (10/29/2014)
+
+- Rename to chef-provisioning-fog
+
 ## 0.9 (9/5/2014)
 
 - [AWS] Per-region default AMIs!

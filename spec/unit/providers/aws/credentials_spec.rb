@@ -1,6 +1,6 @@
-require 'chef_metal_fog/providers/aws/credentials'
+require 'chef/provisioning/fog_driver/providers/aws/credentials'
 
-describe ChefMetalFog::Providers::AWS::Credentials do
+describe Chef::Provisioning::FogDriver::Providers::AWS::Credentials do
   describe "#load_ini" do
     let(:aws_credentials_ini_file) { File.join(File.expand_path('../../../../support', __FILE__), 'aws/ini-file.ini') }
 

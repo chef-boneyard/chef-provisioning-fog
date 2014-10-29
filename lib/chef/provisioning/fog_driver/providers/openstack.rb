@@ -1,9 +1,11 @@
 # fog:OpenStack:https://identifyhost:portNumber/v2.0
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class OpenStack < ChefMetalFog::FogDriver
+    class OpenStack < Chef::Provisioning::FogDriver::FogDriver
 
-      ChefMetalFog::FogDriver.register_provider_class('OpenStack', ChefMetalFog::Providers::OpenStack)
+      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('OpenStack', Chef::Provisioning::FogDriver::Providers::OpenStack)
 
       def creator
         compute_options[:openstack_username]
@@ -34,4 +36,6 @@ module ChefMetalFog
 
     end
   end
+end
+end
 end

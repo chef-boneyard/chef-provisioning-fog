@@ -4,7 +4,7 @@ gemspec
 
 group :development do
   gem 'chef'
-  gem 'chef-metal'
+  gem 'chef-provisioning'
   gem 'guard'
   gem 'guard-rspec'
   gem 'rb-readline'

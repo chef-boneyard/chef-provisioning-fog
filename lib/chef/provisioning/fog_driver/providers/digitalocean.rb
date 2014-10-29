@@ -1,8 +1,10 @@
 #   fog:DigitalOcean:<client id>
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class DigitalOcean < ChefMetalFog::FogDriver
-      ChefMetalFog::FogDriver.register_provider_class('DigitalOcean', ChefMetalFog::Providers::DigitalOcean)
+    class DigitalOcean < Chef::Provisioning::FogDriver::FogDriver
+      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('DigitalOcean', Chef::Provisioning::FogDriver::Providers::DigitalOcean)
 
       def creator
         ''
@@ -14,14 +16,14 @@ module ChefMetalFog
           bootstrap_options[:key_name] ||= File.basename(bootstrap_options[:key_path])
           # Verify that the provided key name and path are in line (or create the key pair if not!)
           driver = self
-          ChefMetal.inline_resource(action_handler) do
+          Chef::Provisioning.inline_resource(action_handler) do
             fog_key_pair bootstrap_options[:key_name] do
               private_key_path bootstrap_options[:key_path]
               driver driver
             end
           end
         else
-          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler)
+          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler, machine_spec)
         end
 
         bootstrap_options[:tags]  = default_tags(machine_spec, bootstrap_options[:tags] || {})
@@ -115,4 +117,6 @@ module ChefMetalFog
 
     end
   end
+end
+end
 end

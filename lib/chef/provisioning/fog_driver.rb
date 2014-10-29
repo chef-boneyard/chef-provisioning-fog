@@ -1,13 +1,17 @@
-require 'chef_metal/driver'
-require 'chef_metal/machine/windows_machine'
-require 'chef_metal/machine/unix_machine'
-require 'chef_metal/machine_spec'
-require 'chef_metal/convergence_strategy/install_msi'
-require 'chef_metal/convergence_strategy/install_sh'
-require 'chef_metal/convergence_strategy/install_cached'
-require 'chef_metal/convergence_strategy/no_converge'
-require 'chef_metal/transport/ssh'
-require 'chef_metal_fog/version'
+require 'chef/provisioning'
+require 'chef/provisioning/fog_driver'
+require 'chef/provisioning/fog_driver/recipe_dsl'
+
+require 'chef/provisioning/driver'
+require 'chef/provisioning/machine/windows_machine'
+require 'chef/provisioning/machine/unix_machine'
+require 'chef/provisioning/machine_spec'
+require 'chef/provisioning/convergence_strategy/install_msi'
+require 'chef/provisioning/convergence_strategy/install_sh'
+require 'chef/provisioning/convergence_strategy/install_cached'
+require 'chef/provisioning/convergence_strategy/no_converge'
+require 'chef/provisioning/transport/ssh'
+require 'chef/provisioning/fog_driver/version'
 require 'fog'
 require 'fog/core'
 require 'fog/compute'
@@ -15,14 +19,16 @@ require 'socket'
 require 'etc'
 require 'time'
 require 'cheffish/merged_config'
-require 'chef_metal_fog/recipe_dsl'
+require 'chef/provisioning/fog_driver/recipe_dsl'
 
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   # Provisions cloud machines with the Fog driver.
   #
   # ## Fog Driver URLs
   #
-  # All Metal drivers use URLs to uniquely identify a driver's "bucket" of machines.
+  # All Chef Provisioning drivers use URLs to uniquely identify a driver's "bucket" of machines.
   # Fog URLs are of the form fog:<provider>:<identifier:> - see individual providers
   # for sample URLs.
   #
@@ -40,7 +46,7 @@ module ChefMetalFog
   # ## Supporting a new Fog provider
   #
   # The Fog driver does not immediately support all Fog providers out of the box.
-  # Some minor work needs to be done to plug them into metal.
+  # Some minor work needs to be done to plug them into Chef.
   #
   # To add a new supported Fog provider, pick an appropriate identifier, go to
   # from_provider and compute_options_for, and add the new provider in the case
@@ -84,7 +90,7 @@ module ChefMetalFog
   #     :key_name => 'key-pair-name'
   #   }
   #
-  class FogDriver < ChefMetal::Driver
+  class FogDriver < Chef::Provisioning::Driver
 
     include Chef::Mixin::ShellOut
 
@@ -110,7 +116,7 @@ module ChefMetalFog
     end
 
     def self.provider_class_for(provider)
-      require "chef_metal_fog/providers/#{provider.downcase}"
+      require "chef/provisioning/fog_driver/providers/#{provider.downcase}"
       @@registered_provider_classes[provider]
     end
 
@@ -138,7 +144,7 @@ module ChefMetalFog
 
       driver_url = "fog:#{provider}:#{id}"
 
-      ChefMetal.driver_for_url(driver_url, config)
+      Chef::Provisioning.driver_for_url(driver_url, config)
     end
 
     # Create a new fog driver.
@@ -313,7 +319,7 @@ module ChefMetalFog
             machine_options = specs_and_options[machine_spec]
             machine_spec.location = {
               'driver_url' => driver_url,
-              'driver_version' => ChefMetalFog::VERSION,
+              'driver_version' => Chef::Provisioning::FogDriver::VERSION,
               'server_id' => server.id,
               'creator' => creator,
               'allocated_at' => Time.now.to_i
@@ -482,13 +488,18 @@ module ChefMetalFog
       result
     end
 
-    @@metal_default_lock = Mutex.new
+    @@chef_default_lock = Mutex.new
 
-    def overwrite_default_key_willy_nilly(action_handler)
+    def overwrite_default_key_willy_nilly(action_handler, machine_spec)
+      if machine_spec.location &&
+         Gem::Version.new(machine_spec.location['driver_version']) < Gem::Version.new('0.10')
+        return 'metal_default'
+      end
+
       driver = self
-      updated = @@metal_default_lock.synchronize do
-        ChefMetal.inline_resource(action_handler) do
-          fog_key_pair 'metal_default' do
+      updated = @@chef_default_lock.synchronize do
+        Chef::Provisioning.inline_resource(action_handler) do
+          fog_key_pair 'chef_default' do
             driver driver
             allow_overwrite true
           end
@@ -496,9 +507,9 @@ module ChefMetalFog
       end
       if updated
         # Only warn the first time
-        Chef::Log.warn("Using metal_default key, which is not shared between machines!  It is recommended to create an AWS key pair with the fog_key_pair resource, and set :bootstrap_options => { :key_name => <key name> }")
+        Chef::Log.warn("Using chef_default key, which is not shared between machines!  It is recommended to create an AWS key pair with the fog_key_pair resource, and set :bootstrap_options => { :key_name => <key name> }")
       end
-      'metal_default'
+      'chef_default'
     end
 
     def bootstrap_options_for(action_handler, machine_spec, machine_options)
@@ -529,24 +540,24 @@ module ChefMetalFog
       end
 
       if machine_spec.location['is_windows']
-        ChefMetal::Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
+        Chef::Provisioning::Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       else
-        ChefMetal::Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
+        Chef::Provisioning::Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       end
     end
 
     def convergence_strategy_for(machine_spec, machine_options)
       # Defaults
       if !machine_spec.location
-        return ChefMetal::ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
+        return Chef::Provisioning::ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
       end
 
       if machine_spec.location['is_windows']
-        ChefMetal::ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
+        Chef::Provisioning::ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
       elsif machine_options[:cached_installer] == true
-        ChefMetal::ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
+        Chef::Provisioning::ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
       else
-        ChefMetal::ConvergenceStrategy::InstallSh.new(machine_options[:convergence_options], config)
+        Chef::Provisioning::ConvergenceStrategy::InstallSh.new(machine_options[:convergence_options], config)
       end
     end
 
@@ -592,7 +603,7 @@ module ChefMetalFog
       ssh_options = ssh_options_for(machine_spec, machine_options, server)
       username = machine_spec.location['ssh_username'] || default_ssh_username
       if machine_options.has_key?(:ssh_username) && machine_options[:ssh_username] != machine_spec.location['ssh_username']
-        Chef::Log.warn("Server #{machine_spec.name} was created with SSH username #{machine_spec.location['ssh_username']} and machine_options specifies username #{machine_options[:ssh_username]}.  Using #{machine_spec.location['ssh_username']}.  Please edit the node and change the metal.location.ssh_username attribute if you want to change it.")
+        Chef::Log.warn("Server #{machine_spec.name} was created with SSH username #{machine_spec.location['ssh_username']} and machine_options specifies username #{machine_options[:ssh_username]}.  Using #{machine_spec.location['ssh_username']}.  Please edit the node and change the chef_provisioning.location.ssh_username attribute if you want to change it.")
       end
       options = {}
       if machine_spec.location[:sudo] || (!machine_spec.location.has_key?(:sudo) && username != 'root')
@@ -615,11 +626,13 @@ module ChefMetalFog
       options[:ssh_pty_enable] = true
       options[:ssh_gateway] = machine_spec.location['ssh_gateway'] if machine_spec.location.has_key?('ssh_gateway')
 
-      ChefMetal::Transport::SSH.new(remote_host, username, ssh_options, options, config)
+      Chef::Provisioning::Transport::SSH.new(remote_host, username, ssh_options, options, config)
     end
 
     def self.compute_options_for(provider, id, config)
       raise "unsupported fog provider #{provider}"
     end
   end
+end
+end
 end
