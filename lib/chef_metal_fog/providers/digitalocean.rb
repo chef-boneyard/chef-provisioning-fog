@@ -96,7 +96,7 @@ module ChefMetalFog
           new_defaults[:machine_options][:bootstrap_options].merge!(
             :region_id => tugboat_data['defaults']['region'].to_i,
             :image_id => tugboat_data['defaults']['image'].to_i,
-            :size_id => tugboat_data['defaults']['region'].to_i,
+            :size_id => tugboat_data['defaults']['size'].to_i,
             :private_networking => tugboat_data['defaults']['private_networking'] == 'true',
             :backups_enabled => tugboat_data['defaults']['backups_enabled'] == 'true',
           )
