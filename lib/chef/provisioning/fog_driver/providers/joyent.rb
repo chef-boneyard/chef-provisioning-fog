@@ -1,11 +1,13 @@
 require 'fog/joyent'
 
 #   fog:Joyent:<joyent_url>
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class Joyent < ChefMetalFog::FogDriver
+    class Joyent < FogDriver::Driver
 
-      ChefMetalFog::FogDriver.register_provider_class('Joyent', ChefMetalFog::Providers::Joyent)
+      Driver.register_provider_class('Joyent', FogDriver::Providers::Joyent)
 
       def creator
         compute_options[:joyent_username]
@@ -52,4 +54,6 @@ module ChefMetalFog
 
     end
   end
+end
+end
 end

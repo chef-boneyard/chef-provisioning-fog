@@ -1,8 +1,8 @@
 $:.unshift File.expand_path('../../lib', __FILE__)
 $:.unshift File.expand_path('../support', __FILE__)
 require 'fog'
-require 'chef_metal'
-require 'chef_metal_fog'
+require 'chef/provisioning'
+require 'chef/provisioning/fog_driver'
 
 RSpec.configure do |config|
   config.run_all_when_everything_filtered = true

@@ -5,13 +5,15 @@ require 'uri'
 #   fog:AWS:<account_id>:<region>
 #   fog:AWS:<profile_name>
 #   fog:AWS:<profile_name>:<region>
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class AWS < ChefMetalFog::FogDriver
+    class AWS < FogDriver::Driver
 
       require_relative 'aws/credentials'
 
-      ChefMetalFog::FogDriver.register_provider_class('AWS', ChefMetalFog::Providers::AWS)
+      Driver.register_provider_class('AWS', FogDriver::Providers::AWS)
 
       def creator
         driver_options[:aws_account_info][:aws_username]
@@ -37,7 +39,7 @@ module ChefMetalFog
                                        opt)
           image_spec.location = {
             'driver_url' => driver_url,
-            'driver_version' => ChefMetalFog::VERSION,
+            'driver_version' => FogDriver::VERSION,
             'image_id' => response.body['imageId'],
             'creator' => creator,
             'allocated_at' => Time.now.to_i
@@ -83,7 +85,7 @@ module ChefMetalFog
         bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
         if !bootstrap_options[:key_name]
-          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler)
+          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler, machine_spec)
         end
         bootstrap_options.delete(:tags) # we handle these separately for performance reasons
         bootstrap_options
@@ -289,7 +291,7 @@ module ChefMetalFog
               id = $1
               new_compute_options[:region] = $3
             else
-              Chef::Log.warn("Old-style AWS URL #{id} from an early beta of chef-metal (before 0.11-final) found. If you have servers in multiple regions on this account, you may see odd behavior like servers being recreated. To fix, edit any nodes with attribute metal.location.driver_url to include the region like so: fog:AWS:#{id}:<region> (e.g. us-east-1)")
+              Chef::Log.warn("Old-style AWS URL #{id} from an early beta of chef-metal (before 0.11-final) found. If you have servers in multiple regions on this account, you may see odd behavior like servers being recreated. To fix, edit any nodes with attribute chef_provisioning.location.driver_url to include the region like so: fog:AWS:#{id}:<region> (e.g. us-east-1)")
             end
           else
             # Assume it is a profile name, and set that.
@@ -374,4 +376,6 @@ module ChefMetalFog
 
     end
   end
+end
+end
 end

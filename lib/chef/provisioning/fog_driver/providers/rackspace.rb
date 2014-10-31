@@ -1,9 +1,11 @@
 # fog:Rackspace:https://identity.api.rackspacecloud.com/v2.0
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class Rackspace < ChefMetalFog::FogDriver
+    class Rackspace < FogDriver::Driver
 
-      ChefMetalFog::FogDriver.register_provider_class('Rackspace', ChefMetalFog::Providers::Rackspace)
+      Driver.register_provider_class('Rackspace', FogDriver::Providers::Rackspace)
 
       def creator
         compute_options[:rackspace_username]
@@ -35,4 +37,6 @@ module ChefMetalFog
 
     end
   end
+end
+end
 end
