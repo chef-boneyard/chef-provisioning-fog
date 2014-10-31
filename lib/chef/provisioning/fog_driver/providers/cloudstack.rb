@@ -2,9 +2,9 @@ class Chef
 module Provisioning
 module FogDriver
   module Providers
-    class CloudStack < Chef::Provisioning::FogDriver::FogDriver
+    class CloudStack < FogDriver::Driver
 
-      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('CloudStack', Chef::Provisioning::FogDriver::Providers::CloudStack)
+      Driver.register_provider_class('CloudStack', FogDriver::Providers::CloudStack)
 
       def creator
         ''

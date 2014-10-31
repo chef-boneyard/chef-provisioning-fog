@@ -3,8 +3,8 @@ class Chef
 module Provisioning
 module FogDriver
   module Providers
-    class DigitalOcean < Chef::Provisioning::FogDriver::FogDriver
-      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('DigitalOcean', Chef::Provisioning::FogDriver::Providers::DigitalOcean)
+    class DigitalOcean < FogDriver::Driver
+      Driver.register_provider_class('DigitalOcean', FogDriver::Providers::DigitalOcean)
 
       def creator
         ''
@@ -16,7 +16,7 @@ module FogDriver
           bootstrap_options[:key_name] ||= File.basename(bootstrap_options[:key_path])
           # Verify that the provided key name and path are in line (or create the key pair if not!)
           driver = self
-          Chef::Provisioning.inline_resource(action_handler) do
+          Provisioning.inline_resource(action_handler) do
             fog_key_pair bootstrap_options[:key_name] do
               private_key_path bootstrap_options[:key_path]
               driver driver

@@ -1,4 +1,4 @@
-require 'chef/provisioning/fog_driver'
+require 'chef/provisioning/fog_driver/driver'
 require 'chef/resource/fog_key_pair'
 require 'chef/provider/fog_key_pair'
 
@@ -7,7 +7,7 @@ class Chef
     module Recipe
       def with_fog_driver(provider, driver_options = nil, &block)
         config = Cheffish::MergedConfig.new({ :driver_options => driver_options }, run_context.config)
-        driver = Chef::Provisioning::FogDriver::FogDriver.from_provider(provider, config)
+        driver = Driver.from_provider(provider, config)
         run_context.chef_provisioning.with_driver(driver, &block)
       end
 

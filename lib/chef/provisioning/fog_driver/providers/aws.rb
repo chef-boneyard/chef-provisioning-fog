@@ -9,11 +9,11 @@ class Chef
 module Provisioning
 module FogDriver
   module Providers
-    class AWS < Chef::Provisioning::FogDriver::FogDriver
+    class AWS < FogDriver::Driver
 
       require_relative 'aws/credentials'
 
-      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('AWS', Chef::Provisioning::FogDriver::Providers::AWS)
+      Driver.register_provider_class('AWS', FogDriver::Providers::AWS)
 
       def creator
         driver_options[:aws_account_info][:aws_username]
@@ -39,7 +39,7 @@ module FogDriver
                                        opt)
           image_spec.location = {
             'driver_url' => driver_url,
-            'driver_version' => Chef::Provisioning::FogDriver::VERSION,
+            'driver_version' => FogDriver::VERSION,
             'image_id' => response.body['imageId'],
             'creator' => creator,
             'allocated_at' => Time.now.to_i

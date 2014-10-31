@@ -5,9 +5,9 @@ class Chef
 module Provisioning
 module FogDriver
   module Providers
-    class Joyent < Chef::Provisioning::FogDriver::FogDriver
+    class Joyent < FogDriver::Driver
 
-      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('Joyent', Chef::Provisioning::FogDriver::Providers::Joyent)
+      Driver.register_provider_class('Joyent', FogDriver::Providers::Joyent)
 
       def creator
         compute_options[:joyent_username]

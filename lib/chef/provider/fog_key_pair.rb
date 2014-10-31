@@ -1,5 +1,5 @@
 require 'chef/provider/lwrp_base'
-require 'chef/provisioning/fog_driver'
+require 'chef/provisioning/fog_driver/driver'
 
 class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
 
@@ -207,7 +207,7 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
   end
 
   def load_current_resource
-    if !new_driver.kind_of?(Chef::Provisioning::FogDriver::FogDriver)
+    if !new_driver.kind_of?(Chef::Provisioning::FogDriver::Driver)
       raise 'fog_key_pair only works with fog_driver'
     end
     @current_resource = Chef::Resource::FogKeyPair.new(new_resource.name, run_context)

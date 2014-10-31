@@ -3,9 +3,9 @@ class Chef
 module Provisioning
 module FogDriver
   module Providers
-    class Rackspace < Chef::Provisioning::FogDriver::FogDriver
+    class Rackspace < FogDriver::Driver
 
-      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('Rackspace', Chef::Provisioning::FogDriver::Providers::Rackspace)
+      Driver.register_provider_class('Rackspace', FogDriver::Providers::Rackspace)
 
       def creator
         compute_options[:rackspace_username]

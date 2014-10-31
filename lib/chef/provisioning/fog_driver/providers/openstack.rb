@@ -3,9 +3,9 @@ class Chef
 module Provisioning
 module FogDriver
   module Providers
-    class OpenStack < Chef::Provisioning::FogDriver::FogDriver
+    class OpenStack < FogDriver::Driver
 
-      Chef::Provisioning::FogDriver::FogDriver.register_provider_class('OpenStack', Chef::Provisioning::FogDriver::Providers::OpenStack)
+      Driver.register_provider_class('OpenStack', FogDriver::Providers::OpenStack)
 
       def creator
         compute_options[:openstack_username]

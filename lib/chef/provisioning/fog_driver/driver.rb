@@ -1,5 +1,4 @@
 require 'chef/provisioning'
-require 'chef/provisioning/fog_driver'
 require 'chef/provisioning/fog_driver/recipe_dsl'
 
 require 'chef/provisioning/driver'
@@ -90,7 +89,7 @@ module FogDriver
   #     :key_name => 'key-pair-name'
   #   }
   #
-  class FogDriver < Chef::Provisioning::Driver
+  class Driver < Provisioning::Driver
 
     include Chef::Mixin::ShellOut
 
@@ -127,7 +126,7 @@ module FogDriver
 
     # Passed in a driver_url, and a config in the format of Driver.config.
     def self.from_url(driver_url, config)
-      FogDriver.new(driver_url, config)
+      Driver.new(driver_url, config)
     end
 
     def self.canonicalize_url(driver_url, config)
@@ -144,7 +143,7 @@ module FogDriver
 
       driver_url = "fog:#{provider}:#{id}"
 
-      Chef::Provisioning.driver_for_url(driver_url, config)
+      Provisioning.driver_for_url(driver_url, config)
     end
 
     # Create a new fog driver.
@@ -319,7 +318,7 @@ module FogDriver
             machine_options = specs_and_options[machine_spec]
             machine_spec.location = {
               'driver_url' => driver_url,
-              'driver_version' => Chef::Provisioning::FogDriver::VERSION,
+              'driver_version' => FogDriver::VERSION,
               'server_id' => server.id,
               'creator' => creator,
               'allocated_at' => Time.now.to_i
@@ -498,7 +497,7 @@ module FogDriver
 
       driver = self
       updated = @@chef_default_lock.synchronize do
-        Chef::Provisioning.inline_resource(action_handler) do
+        Provisioning.inline_resource(action_handler) do
           fog_key_pair 'chef_default' do
             driver driver
             allow_overwrite true
@@ -540,24 +539,24 @@ module FogDriver
       end
 
       if machine_spec.location['is_windows']
-        Chef::Provisioning::Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
+        Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       else
-        Chef::Provisioning::Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
+        Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       end
     end
 
     def convergence_strategy_for(machine_spec, machine_options)
       # Defaults
       if !machine_spec.location
-        return Chef::Provisioning::ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
+        return ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
       end
 
       if machine_spec.location['is_windows']
-        Chef::Provisioning::ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
+        ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
       elsif machine_options[:cached_installer] == true
-        Chef::Provisioning::ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
+        ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
       else
-        Chef::Provisioning::ConvergenceStrategy::InstallSh.new(machine_options[:convergence_options], config)
+        ConvergenceStrategy::InstallSh.new(machine_options[:convergence_options], config)
       end
     end
 
@@ -626,7 +625,7 @@ module FogDriver
       options[:ssh_pty_enable] = true
       options[:ssh_gateway] = machine_spec.location['ssh_gateway'] if machine_spec.location.has_key?('ssh_gateway')
 
-      Chef::Provisioning::Transport::SSH.new(remote_host, username, ssh_options, options, config)
+      Transport::SSH.new(remote_host, username, ssh_options, options, config)
     end
 
     def self.compute_options_for(provider, id, config)
