@@ -116,6 +116,7 @@ module ChefMetalFog
       end
 
       def convergence_strategy_for(machine_spec, machine_options)
+        machine_options[:convergence_options] ||= {}
         machine_options[:convergence_options][:ohai_hints] = { 'ec2' => ''}
         super(machine_spec, machine_options)
       end
