@@ -303,7 +303,6 @@ module ChefMetalFog
         description = [ "creating #{machine_description} on #{driver_url}" ]
         bootstrap_options.each_pair { |key,value| description << "  #{key}: #{value.inspect}" }
         action_handler.report_progress description
-
         if action_handler.should_perform_actions
           # Actually create the servers
           create_many_servers(machine_specs.size, bootstrap_options, parallelizer) do |server|
@@ -328,7 +327,7 @@ module ChefMetalFog
           end
 
           if machine_specs.size > 0
-            raise "Not all machines were created by create_many_machines!"
+            raise "Not all machines were created by create_many_servers!"
           end
         end
       end.to_a
@@ -336,7 +335,8 @@ module ChefMetalFog
 
     def create_many_servers(num_servers, bootstrap_options, parallelizer)
       parallelizer.parallelize(1.upto(num_servers)) do |i|
-        server = compute.servers.create(bootstrap_options)
+        clean_bootstrap_options = Marshal.load(Marshal.dump(bootstrap_options)) # Prevent destructive operations on bootstrap_options.
+        server = compute.servers.create(clean_bootstrap_options)
         yield server if block_given?
         server
       end.to_a
