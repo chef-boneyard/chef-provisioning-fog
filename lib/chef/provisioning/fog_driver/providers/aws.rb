@@ -1,6 +1,10 @@
 require 'chef/log'
 require 'fog/aws'
 require 'uri'
+require 'base64'
+require 'openssl'
+require 'pathname'
+require 'chef/provisioning/transport/winrm'
 
 #   fog:AWS:<account_id>:<region>
 #   fog:AWS:<profile_name>
@@ -21,6 +25,45 @@ module FogDriver
 
       def default_ssh_username
         'ubuntu'
+      end
+
+      # Create a WinRM transport for an AWS instance
+      # @param [Hash] machine_spec Machine-spec hash
+      # @param [Hash] machine_options Machine options (from the recipe)
+      # @param [Fog::Compute::Server] server A Fog mapping to the AWS instance
+      # @return [ChefMetal::Transport::WinRM] A WinRM Transport object to talk to the server
+      def create_winrm_transport(machine_spec, machine_options, server)
+        remote_host = if machine_spec.location['use_private_ip_for_ssh']
+                        server.private_ip_address
+                      elsif !server.public_ip_address
+                        Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
+                        server.private_ip_address
+                      elsif server.public_ip_address
+                        server.public_ip_address
+                      else
+                        fail "Server #{server.id} has no private or public IP address!"
+                      end
+
+        port = machine_spec.location['winrm_port'] || 5985
+        endpoint = "http://#{remote_host}:#{port}/wsman"
+        type = :plaintext
+        pem_bytes = private_key_for(machine_spec, server)
+        encrypted_admin_password = wait_for_admin_password(machine_spec)
+        decoded = Base64.decode64(encrypted_admin_password)
+        private_key = OpenSSL::PKey::RSA.new(pem_bytes)
+        decrypted_password = private_key.private_decrypt decoded
+
+        # Use basic HTTP auth - this is required for the WinRM setup we
+        # are using
+        # TODO: Improve that.
+        options = {
+            :user => machine_spec.location['winrm.username'] || 'Administrator',
+            :pass => decrypted_password,
+            :disable_sspi => true,
+            :basic_auth_only => true
+        }
+
+        Chef::Provisioning::Transport::WinRM.new(endpoint, type, options, {})
       end
 
       def allocate_image(action_handler, image_spec, image_options, machine_spec)
@@ -86,6 +129,12 @@ module FogDriver
 
         if !bootstrap_options[:key_name]
           bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler, machine_spec)
+        end
+
+        if machine_options[:is_windows]
+          Chef::Log.debug('Attaching WinRM data for user data.')
+          # Enable WinRM basic auth, HTTP and open the firewall
+          bootstrap_options[:user_data] = user_data
         end
         bootstrap_options.delete(:tags) # we handle these separately for performance reasons
         bootstrap_options
@@ -351,6 +400,27 @@ module FogDriver
       end
 
       private
+      def user_data
+        # TODO: Make this use HTTPS at some point.
+        <<EOD
+<powershell>
+winrm quickconfig -q
+winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="300"}'
+winrm set winrm/config '@{MaxTimeoutms="1800000"}'
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/service/auth '@{Basic="true"}'
+
+netsh advfirewall firewall add rule name="WinRM 5985" protocol=TCP dir=in localport=5985 action=allow
+netsh advfirewall firewall add rule name="WinRM 5986" protocol=TCP dir=in localport=5986 action=allow
+
+net stop winrm
+sc config winrm start=auto
+net start winrm
+</powershell>
+
+EOD
+      end
+
       def self.default_ami_for_region(region)
         Chef::Log.debug("Choosing default AMI for region '#{region}'")
 
@@ -372,6 +442,33 @@ module FogDriver
         when 'us-west-2'
           'ami-f1ce8bc1'
         end
+      end
+
+      # Wait for the Windows Admin password to become available
+      # @param [Hash] machine_spec Machine spec data
+      # @return [String] encrypted admin password
+      def wait_for_admin_password(machine_spec)
+        time_elapsed = 0
+        sleep_time = 10
+        max_wait_time = 900 # 15 minutes
+        encrypted_admin_password = nil
+        instance_id = machine_spec.location['server_id']
+
+
+        Chef::Log.info "waiting for #{machine_spec.name}'s admin password to be available..."
+        while time_elapsed < max_wait_time && encrypted_admin_password.nil?
+          response = compute.get_password_data(instance_id)
+          encrypted_admin_password = response.body['passwordData']
+          if encrypted_admin_password.nil?
+            Chef::Log.info "#{time_elapsed}/#{max_wait_time}s elapsed -- sleeping #{sleep_time} seconds for #{machine_spec.name}'s admin password."
+            sleep(sleep_time)
+            time_elapsed += sleep_time
+          end
+        end
+
+        Chef::Log.info "#{machine_spec.name}'s admin password is available!'"
+
+        encrypted_admin_password
       end
 
     end

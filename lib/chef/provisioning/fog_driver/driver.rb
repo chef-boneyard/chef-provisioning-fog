@@ -10,7 +10,9 @@ require 'chef/provisioning/convergence_strategy/install_sh'
 require 'chef/provisioning/convergence_strategy/install_cached'
 require 'chef/provisioning/convergence_strategy/no_converge'
 require 'chef/provisioning/transport/ssh'
+require 'chef/provisioning/transport/winrm'
 require 'chef/provisioning/fog_driver/version'
+
 require 'fog'
 require 'fog/core'
 require 'fog/compute'
@@ -258,9 +260,15 @@ module FogDriver
     end
 
     # Not meant to be part of public interface
-    def transport_for(machine_spec, machine_options, server)
-      # TODO winrm
-      create_ssh_transport(machine_spec, machine_options, server)
+    def transport_for(machine_spec, machine_options, server, action_handler = nil)
+      if machine_spec.location['is_windows']
+        action_handler.report_progress "Waiting for admin password on #{machine_spec.name} to be ready (may take up to 15 minutes)..." if action_handler
+        transport = create_winrm_transport(machine_spec, machine_options, server)
+        action_handler.report_progress 'Admin password available ...' if action_handler
+        transport
+      else
+        create_ssh_transport(machine_spec, machine_options, server)
+      end
     end
 
     protected
@@ -400,7 +408,8 @@ module FogDriver
     end
 
     def wait_for_transport(action_handler, machine_spec, machine_options, server)
-      transport = transport_for(machine_spec, machine_options, server)
+
+      transport = transport_for(machine_spec, machine_options, server, action_handler)
       if !transport.available?
         if action_handler.should_perform_actions
           action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running) ..."
@@ -560,42 +569,52 @@ module FogDriver
       end
     end
 
-    def ssh_options_for(machine_spec, machine_options, server)
-      result = {
-# TODO create a user known hosts file
-#          :user_known_hosts_file => vagrant_ssh_config['UserKnownHostsFile'],
-#          :paranoid => true,
-        :auth_methods => [ 'publickey' ],
-        :keys_only => true,
-        :host_key_alias => "#{server.id}.#{provider}"
-      }.merge(machine_options[:ssh_options] || {})
+    # Get the private key for a machine - prioritize the server data, fall back to the
+    # the machine spec data, and if that doesn't work, raise an exception.
+    # @param [Hash] machine_spec Machine spec data
+    # @param [Chef::Provisioning::Machine] server a Machine representing the server
+    # @return [String] PEM-encoded private key
+    def private_key_for(machine_spec, server)
       if server.respond_to?(:private_key) && server.private_key
-        result[:key_data] = [ server.private_key ]
+         server.private_key
       elsif server.respond_to?(:key_name) && server.key_name
         key = get_private_key(server.key_name)
         if !key
           raise "Server has key name '#{server.key_name}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
         end
-        result[:key_data] = [ key ]
+        key
       elsif machine_spec.location['key_name']
         key = get_private_key(machine_spec.location['key_name'])
         if !key
           raise "Server was created with key name '#{machine_spec.location['key_name']}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
         end
-        result[:key_data] = [ key ]
+        key
       elsif machine_options[:bootstrap_options][:key_path]
-        result[:key_data] = [ IO.read(machine_options[:bootstrap_options][:key_path]) ]
+        IO.read(machine_options[:bootstrap_options][:key_path])
       elsif machine_options[:bootstrap_options][:key_name]
-        result[:key_data] = [ get_private_key(machine_options[:bootstrap_options][:key_name]) ]
+        get_private_key(machine_options[:bootstrap_options][:key_name])
       else
         # TODO make a way to suggest other keys to try ...
         raise "No key found to connect to #{machine_spec.name} (#{machine_spec.location.inspect})!"
       end
+    end
+
+    def ssh_options_for(machine_spec, machine_options, server)
+      result = {
+        :auth_methods => [ 'publickey' ],
+        :keys_only => true,
+        :host_key_alias => "#{server.id}.#{provider}"
+      }.merge(machine_options[:ssh_options] || {})
+      result[:key_data] = [ private_key_for(machine_spec, server) ]
       result
     end
 
     def default_ssh_username
       'root'
+    end
+
+    def create_winrm_transport(machine_spec, machine_options, server)
+      fail "This provider doesn't know how to do that."
     end
 
     def create_ssh_transport(machine_spec, machine_options, server)
