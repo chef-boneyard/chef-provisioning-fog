@@ -28,7 +28,7 @@ class Chef::Resource::FogKeyPair < Chef::Resource::LWRPBase
   end
 
   # We are not interested in Chef's cloning behavior here.
-  def load_prior_resource
+  def load_prior_resource(*args)
     Chef::Log.debug("Overloading #{resource_name}.load_prior_resource with NOOP")
   end
 end
