@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11 (11/5/2014)
+
+- WinRM support for AWS!
+- Work with Chef 12
+
 ## 0.10 (10/29/2014)
 
 - Rename to chef-provisioning-fog
