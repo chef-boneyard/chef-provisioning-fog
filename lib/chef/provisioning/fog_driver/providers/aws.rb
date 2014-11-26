@@ -47,7 +47,7 @@ module FogDriver
         port = machine_spec.location['winrm_port'] || 5985
         endpoint = "http://#{remote_host}:#{port}/wsman"
         type = :plaintext
-        pem_bytes = private_key_for(machine_spec, server)
+        pem_bytes = private_key_for(machine_spec, machine_options, server)
         encrypted_admin_password = wait_for_admin_password(machine_spec)
         decoded = Base64.decode64(encrypted_admin_password)
         private_key = OpenSSL::PKey::RSA.new(pem_bytes)
