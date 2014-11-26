@@ -572,9 +572,10 @@ module FogDriver
     # Get the private key for a machine - prioritize the server data, fall back to the
     # the machine spec data, and if that doesn't work, raise an exception.
     # @param [Hash] machine_spec Machine spec data
+    # @param [Hash] machine_options Machine options
     # @param [Chef::Provisioning::Machine] server a Machine representing the server
     # @return [String] PEM-encoded private key
-    def private_key_for(machine_spec, server)
+    def private_key_for(machine_spec, machine_options, server)
       if server.respond_to?(:private_key) && server.private_key
          server.private_key
       elsif server.respond_to?(:key_name) && server.key_name
@@ -605,7 +606,7 @@ module FogDriver
         :keys_only => true,
         :host_key_alias => "#{server.id}.#{provider}"
       }.merge(machine_options[:ssh_options] || {})
-      result[:key_data] = [ private_key_for(machine_spec, server) ]
+      result[:key_data] = [ private_key_for(machine_spec, machine_options, server) ]
       result
     end
 
