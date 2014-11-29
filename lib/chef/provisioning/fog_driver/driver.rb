@@ -603,10 +603,13 @@ module FogDriver
     def ssh_options_for(machine_spec, machine_options, server)
       result = {
         :auth_methods => [ 'publickey' ],
-        :keys_only => true,
         :host_key_alias => "#{server.id}.#{provider}"
       }.merge(machine_options[:ssh_options] || {})
-      result[:key_data] = [ private_key_for(machine_spec, machine_options, server) ]
+      # Grab key_data from the user's config if not specified
+      unless result.has_key?(:key_data)
+        result[:keys_only] = true
+        result[:key_data] = [ private_key_for(machine_spec, machine_options, server) ]
+      end
       result
     end
 
