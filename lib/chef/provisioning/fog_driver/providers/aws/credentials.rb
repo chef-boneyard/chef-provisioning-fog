@@ -16,7 +16,7 @@ module FogDriver
 
         def default
           if @credentials.size == 0
-            raise "No credentials loaded!  Do you have a ~/.aws/config?"
+            raise "No credentials loaded!  Do you have one of ~/.aws/credentials or ~/.aws/config?"
           end
           @credentials[ENV['AWS_DEFAULT_PROFILE'] || 'default'] || @credentials.first[1]
         end
@@ -44,7 +44,8 @@ module FogDriver
                   result
                 end
                 profile[:name] = profile_name
-                @credentials[profile_name] = profile
+                @credentials[profile_name] = (@credentials[profile_name].nil? && profile) ||
+                    @credentials[profile_name].merge(profile)
               end
             end
           else
@@ -66,9 +67,16 @@ module FogDriver
         end
 
         def load_default
-          config_file = ENV['AWS_CONFIG_FILE'] || File.expand_path('~/.aws/config')
-          if File.file?(config_file)
-            load_ini(config_file)
+          unless ENV['AWS_CONFIG_FILE']
+            path = ['~/.aws/credentials', '~/.aws/config']
+          else
+            path = [ENV['AWS_CONFIG_FILE']]
+          end
+
+          path.each do |file|
+            if File.file?(File.expand_path(file))
+              load_ini(file)
+            end
           end
         end
 
