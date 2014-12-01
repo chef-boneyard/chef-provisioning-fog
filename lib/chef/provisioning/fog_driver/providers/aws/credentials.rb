@@ -68,7 +68,7 @@ module FogDriver
 
         def load_default
           unless ENV['AWS_CONFIG_FILE']
-            path = ['~/.aws/credentials', '~/.aws/config']
+            path = ['~/.aws/config', '~/.aws/credentials']
           else
             path = [ENV['AWS_CONFIG_FILE']]
           end
