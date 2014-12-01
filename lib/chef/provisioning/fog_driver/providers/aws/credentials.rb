@@ -67,10 +67,10 @@ module FogDriver
         end
 
         def load_default
-          unless ENV['AWS_CONFIG_FILE']
-            path = ['~/.aws/config', '~/.aws/credentials']
-          else
+          if ENV['AWS_CONFIG_FILE']
             path = [ENV['AWS_CONFIG_FILE']]
+          else
+            path = ['~/.aws/config', '~/.aws/credentials']
           end
 
           path.each do |file|
