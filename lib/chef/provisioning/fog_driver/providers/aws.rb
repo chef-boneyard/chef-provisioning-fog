@@ -335,7 +335,7 @@ module FogDriver
 
         if id && id != ''
           # AWS canonical URLs are of the form fog:AWS:
-          if id =~ /^(\d{12})(:(.+))?$/
+          if id =~ /^(\d{12}|IAM)(:(.+))?$/
             if $2
               id = $1
               new_compute_options[:region] = $3
@@ -350,17 +350,22 @@ module FogDriver
             id = nil
           end
         end
+        if id == 'IAM'
+          id = "IAM:#{result[:driver_options][:compute_options][:region]}"
+          new_config[:driver_options][:aws_account_info] = { aws_username: 'IAM' }
+          new_compute_options[:use_iam_profile] = true
+        else
+          aws_profile = get_aws_profile(result[:driver_options], id)
+          new_compute_options[:aws_access_key_id] = aws_profile[:aws_access_key_id]
+          new_compute_options[:aws_secret_access_key] = aws_profile[:aws_secret_access_key]
+          new_compute_options[:aws_session_token] = aws_profile[:aws_security_token]
+          new_defaults[:driver_options][:compute_options][:region] = aws_profile[:region]
+          new_defaults[:driver_options][:compute_options][:endpoint] = aws_profile[:ec2_endpoint]
 
-        aws_profile = get_aws_profile(result[:driver_options], id)
-        new_compute_options[:aws_access_key_id] = aws_profile[:aws_access_key_id]
-        new_compute_options[:aws_secret_access_key] = aws_profile[:aws_secret_access_key]
-        new_compute_options[:aws_session_token] = aws_profile[:aws_security_token]
-        new_defaults[:driver_options][:compute_options][:region] = aws_profile[:region]
-        new_defaults[:driver_options][:compute_options][:endpoint] = aws_profile[:ec2_endpoint]
-
-        account_info = aws_account_info_for(result[:driver_options][:compute_options])
-        new_config[:driver_options][:aws_account_info] = account_info
-        id = "#{account_info[:aws_account_id]}:#{result[:driver_options][:compute_options][:region]}"
+          account_info = aws_account_info_for(result[:driver_options][:compute_options])
+          new_config[:driver_options][:aws_account_info] = account_info
+          id = "#{account_info[:aws_account_id]}:#{result[:driver_options][:compute_options][:region]}"
+        end
 
         # Make sure we're using a reasonable default AMI, for now this is Ubuntu 14.04 LTS
         result[:machine_options][:bootstrap_options][:image_id] ||=
