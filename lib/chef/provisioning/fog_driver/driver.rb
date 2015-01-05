@@ -629,7 +629,14 @@ module FogDriver
       end
 
       remote_host = nil
-      if machine_spec.location['use_private_ip_for_ssh']
+      if machine_options.has_key?(:bootstrap_network)
+        bootstrap_network = machine_options[:bootstrap_network]
+        begin
+          remote_host = server.addresses[bootstrap_network].first["addr"]
+        rescue
+          raise "Could not find address for bootstrap_network '#{bootstrap_network}'"
+        end
+      elsif machine_spec.location['use_private_ip_for_ssh']
         remote_host = server.private_ip_address
       elsif !server.public_ip_address
         Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
