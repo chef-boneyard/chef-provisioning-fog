@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12 (1/27/2015)
+
+- Allow user to pass private key data in machine_options[:ssh_options][:key_data] (@squaresurf)
+- [AWS] Add IAM role support for AWS via fog:AWS:IAM (@justindossey)
+- [Rackspace] Prevent bootstrap options from being destructively modified (@kanerogers)
+
 ## 0.11 (11/5/2014)
 
 - WinRM support for AWS!
