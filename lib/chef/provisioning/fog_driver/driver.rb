@@ -53,8 +53,8 @@ module FogDriver
   # from_provider and compute_options_for, and add the new provider in the case
   # statements so that URLs for your fog provider can be generated.  If your
   # cloud provider has environment variables or standard config files (like
-  # ~/.aws/config), you can read those and merge that information in the
-  # compute_options_for function.
+  # ~/.aws/credentials or ~/.aws/config), you can read those and merge that information
+  # in the compute_options_for function.
   #
   # ## Location format
   #
@@ -155,7 +155,7 @@ module FogDriver
     # config - configuration.  :driver_options, :keys, :key_paths and :log_level are used.
     #   driver_options is a hash with these possible options:
     #   - compute_options: the hash of options to Fog::Compute.new.
-    #   - aws_config_file: aws config file (default: ~/.aws/config)
+    #   - aws_config_file: aws config file (defaults: ~/.aws/credentials, ~/.aws/config)
     #   - aws_csv_file: aws csv credentials file downloaded from EC2 interface
     #   - aws_profile: profile name to use for credentials
     #   - aws_credentials: AWSCredentials object. (will be created for you by default)
