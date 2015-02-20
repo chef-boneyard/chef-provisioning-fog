@@ -11,6 +11,21 @@ module FogDriver
         compute_options[:openstack_username]
       end
 
+      def attach_floating_ips(action_handler, machine_spec, machine_options, server)
+        # TODO this is not particularly idempotent. OK, it is not idempotent AT ALL.  Fix.
+        if option_for(machine_options, :floating_ip_pool)
+          Chef::Log.info 'Attaching IP from pool'
+          action_handler.perform_action "attach floating IP from #{option_for(machine_options, :floating_ip_pool)} pool" do
+            attach_ip_from_pool(server, option_for(machine_options, :floating_ip_pool))
+          end
+        elsif option_for(machine_options, :floating_ip)
+          Chef::Log.info 'Attaching given IP'
+          action_handler.perform_action "attach floating IP #{option_for(machine_options, :floating_ip)}" do
+            attach_ip(server, option_for(machine_options, :floating_ip))
+          end
+        end
+      end
+
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
         new_compute_options[:provider] = provider
