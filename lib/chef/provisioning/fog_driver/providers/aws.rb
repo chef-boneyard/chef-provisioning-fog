@@ -314,9 +314,9 @@ module FogDriver
         else
           aws_credentials = Credentials.new
           if driver_options[:aws_config_file]
-            aws_credentials.load_ini(driver_options.delete(:aws_config_file))
+            aws_credentials.load_ini(driver_options[:aws_config_file])
           elsif driver_options[:aws_csv_file]
-            aws_credentials.load_csv(driver_options.delete(:aws_csv_file))
+            aws_credentials.load_csv(driver_options[:aws_csv_file])
           else
             aws_credentials.load_default
           end
