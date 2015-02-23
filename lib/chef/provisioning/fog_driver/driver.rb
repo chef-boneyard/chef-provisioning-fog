@@ -78,7 +78,7 @@ module FogDriver
   # - ssh_timeout: the time to wait for ssh to be available if the instance is detected as up (defaults to 20)
   # - ssh_username: username to use for ssh
   # - sudo: true to prefix all commands with "sudo"
-  # - use_private_ip_for_ssh: hint to use private ip when available
+  # - use_private_ip_for_ssh: hint to use private floating_ip when available
   # - convergence_options: hash of options for the convergence strategy
   #   - chef_client_timeout: the time to wait for chef-client to finish
   #   - chef_server - the chef server to point convergence at
@@ -92,6 +92,7 @@ module FogDriver
   #   }
   #
   class Driver < Provisioning::Driver
+    @@ip_pool_lock = Mutex.new
 
     include Chef::Mixin::ShellOut
 
@@ -424,46 +425,63 @@ module FogDriver
       end
     end
 
+    # Check given IP already attached and attach if necessary
+    # TODO update to remove old floating IPs
     def attach_floating_ips(action_handler, machine_spec, machine_options, server)
-      # TODO this is not particularly idempotent. OK, it is not idempotent AT ALL.  Fix.
-      if option_for(machine_options, :floating_ip_pool)
+      pool = option_for(machine_options, :floating_ip_pool)
+      floating_ip = option_for(machine_options, :floating_ip)
+      if pool
         Chef::Log.info 'Attaching IP from pool'
-        action_handler.perform_action "attach floating IP from #{option_for(machine_options, :floating_ip_pool)} pool" do
-          attach_ip_from_pool(server, option_for(machine_options, :floating_ip_pool))
+        allocated_addresses = server.addresses[pool]
+        unless allocated_addresses.nil?
+          floating_ips = allocated_addresses.select {|a_info| a_info['OS-EXT-IPS:type']=='floating'}
+          if floating_ips.length>0
+            Chef::Log.info "Server already assigned floating_ips `#{floating_ips}` from pool `#{pool}`"
+          end
+        else
+          action_handler.perform_action "Attaching floating IP from pool `#{pool}`" do
+            attach_ip_from_pool(server, pool)
+          end
         end
-      elsif option_for(machine_options, :floating_ip)
+      elsif floating_ip
         Chef::Log.info 'Attaching given IP'
-        action_handler.perform_action "attach floating IP #{option_for(machine_options, :floating_ip)}" do
-          attach_ip(server, option_for(machine_options, :allocation_id), option_for(machine_options, :floating_ip))
+        allocated_addresses = []
+        server.addresses.keys.each do |pool|
+          server.addresses[pool].each {|a_info| allocated_addresses<<a_info['addr']}
+        end
+        if allocated_addresses.include? floating_ip
+          Chef::Log.info "Address <#{floating_ip}> already allocated"
+        else
+          action_handler.perform_action "Attaching floating IP #{floating_ip}" do
+            attach_ip(server, floating_ip)
+          end
         end
       end
     end
 
     # Attach IP to machine from IP pool
     # Code taken from kitchen-openstack driver
-    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb#L196-L207
+    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb
     def attach_ip_from_pool(server, pool)
-      @ip_pool_lock ||= Mutex.new
-      @ip_pool_lock.synchronize do
+      @@ip_pool_lock.synchronize do
         Chef::Log.info "Attaching floating IP from <#{pool}> pool"
-        free_addrs = compute.addresses.collect do |i|
-          i.ip if i.fixed_ip.nil? and i.instance_id.nil? and i.pool == pool
+        free_addrs = compute.addresses.map do |i|
+          i.ip if i.fixed_ip.nil? && i.instance_id.nil? && i.pool == pool
         end.compact
         if free_addrs.empty?
-          raise ActionFailed, "No available IPs in pool <#{pool}>"
+          raise RuntimeError, "No available IPs in pool <#{pool}>"
         end
         attach_ip(server, free_addrs[0])
       end
     end
 
-    # Attach given IP to machine
+    # Attach given IP to machine, assign it as public
     # Code taken from kitchen-openstack driver
-    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb#L209-L213
-    def attach_ip(server, allocation_id, ip)
+    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb
+    def attach_ip(server, ip)
       Chef::Log.info "Attaching floating IP <#{ip}>"
-      compute.associate_address(:instance_id => server.id,
-                                :allocation_id => allocation_id,
-                                :public_ip => ip)
+      server.associate_address ip
+      (server.addresses['public'] ||= []) << { 'version' => 4, 'addr' => ip }
     end
 
     def symbolize_keys(options)
@@ -636,7 +654,7 @@ module FogDriver
       if machine_spec.location['use_private_ip_for_ssh']
         remote_host = server.private_ip_address
       elsif !server.public_ip_address
-        Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
+        Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
         remote_host = server.private_ip_address
       elsif server.public_ip_address
         remote_host = server.public_ip_address
