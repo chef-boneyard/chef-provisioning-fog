@@ -200,12 +200,13 @@ module FogDriver
         raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
       end
 
-      # Attach floating IPs if necessary
-      attach_floating_ips(action_handler, machine_spec, machine_options, server)
-
       # Start the server if needed, and wait for it to start
       start_server(action_handler, machine_spec, server)
       wait_until_ready(action_handler, machine_spec, machine_options, server)
+
+      # Attach floating IPs if necessary
+      attach_floating_ips(action_handler, machine_spec, machine_options, server)
+
       begin
         wait_for_transport(action_handler, machine_spec, machine_options, server)
       rescue Fog::Errors::TimeoutError
