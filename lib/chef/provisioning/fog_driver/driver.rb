@@ -426,24 +426,25 @@ module FogDriver
     end
 
     # Check given IP already attached and attach if necessary
-    # TODO update to remove old floating IPs
+    # TODO update to remove old floating IPs that should not be assigned to machine
     def attach_floating_ips(action_handler, machine_spec, machine_options, server)
       pool = option_for(machine_options, :floating_ip_pool)
       floating_ip = option_for(machine_options, :floating_ip)
       if pool
+
         Chef::Log.info 'Attaching IP from pool'
-        allocated_addresses = server.addresses[pool]
-        unless allocated_addresses.nil?
-          floating_ips = allocated_addresses.select {|a_info| a_info['OS-EXT-IPS:type']=='floating'}
-          if floating_ips.length>0
-            Chef::Log.info "Server already assigned floating_ips `#{floating_ips}` from pool `#{pool}`"
-          end
-        else
+        allocated_addresses = server.addresses[pool] || []
+        floating_ips = allocated_addresses.select {|a_info| a_info['OS-EXT-IPS:type']=='floating'}
+        if floating_ips.size > 0
+          Chef::Log.info "Server already assigned floating_ips `#{floating_ips}` from pool `#{pool}`"
+        elsif
           action_handler.perform_action "Attaching floating IP from pool `#{pool}`" do
             attach_ip_from_pool(server, pool)
           end
         end
+
       elsif floating_ip
+
         Chef::Log.info 'Attaching given IP'
         allocated_addresses = []
         server.addresses.keys.each do |pool|
@@ -456,6 +457,7 @@ module FogDriver
             attach_ip(server, floating_ip)
           end
         end
+
       end
     end
 
