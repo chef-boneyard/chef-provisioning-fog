@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13 (2/25/2015)
+
+- Support for ~/.aws/credentials (@miguelcnf)
+- Crash fixes for mixed machine options
+
 ## 0.12 (1/27/2015)
 
 - Allow user to pass private key data in machine_options[:ssh_options][:key_data] (@squaresurf)
