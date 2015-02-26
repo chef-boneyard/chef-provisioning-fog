@@ -29,8 +29,16 @@ module FogDriver
         bootstrap_options[:tags]  = default_tags(machine_spec, bootstrap_options[:tags] || {})
 
         if !bootstrap_options[:image_id]
-          bootstrap_options[:image_name] ||= 'CentOS 6.4 x32'
-          bootstrap_options[:image_id] = compute.images.select { |image| image.name == bootstrap_options[:image_name] }.first.id
+          if !bootstrap_options[:image_distribution] && !bootstrap_options[:image_name]
+            bootstrap_options[:image_distribution] = 'CentOS'
+            bootstrap_options[:image_name] = '6.5 x64'
+          end
+          matches = compute.images.select { |image| image.distribution == bootstrap_options[:image_distribution] }
+          matches = matches.select { |image| image.name == bootstrap_options[:image_name] } if bootstrap_options[:image_name]
+          if matches.empty?
+            raise "No images on DigitalOcean with distribution #{bootstrap_options[:image_distribution].inspect} and name #{bootstrap_options[:image_name].inspect}"
+          end
+          bootstrap_options[:image_id] = matches.first.id
         end
         if !bootstrap_options[:flavor_id]
           bootstrap_options[:flavor_name] ||= '512MB'
@@ -69,8 +77,8 @@ module FogDriver
         new_compute_options[:provider] = provider
         new_config = { :driver_options => { :compute_options => new_compute_options }}
         new_defaults = {
-          :driver_options => { :compute_options => {} },
-          :machine_options => { :bootstrap_options => {} }
+          :driver_options  => { :compute_options => {} },
+          :machine_options => { :bootstrap_options => {}, :ssh_options => {} }
         }
         result = Cheffish::MergedConfig.new(new_config, config, new_defaults)
 
@@ -80,39 +88,27 @@ module FogDriver
         tugboat_file = File.expand_path('~/.tugboat')
         if File.exist?(tugboat_file)
           tugboat_data = YAML.load(IO.read(tugboat_file))
-          new_compute_options.merge!(
-            :digitalocean_client_id => tugboat_data['authentication']['client_key'],
-            :digitalocean_api_key => tugboat_data['authentication']['api_key']
-          )
-          new_defaults[:machine_options].merge!(
-            #:ssh_username => tugboat_data['ssh']['ssh_user'],
-            :ssh_options => {
-              :port => tugboat_data['ssh']['ssh_port'],
-              # TODO we ignore ssh_key_path in favor of ssh_key / key_name stuff
-              #:key_data => [ IO.read(tugboat_data['ssh']['ssh_key_path']) ] # TODO use paths, not data?
-            }
-          )
 
-          # TODO verify that the key_name exists and matches the ssh key path
-
-          new_defaults[:machine_options][:bootstrap_options].merge!(
-            :region_id => tugboat_data['defaults']['region'].to_i,
-            :image_id => tugboat_data['defaults']['image'].to_i,
-            :size_id => tugboat_data['defaults']['size'].to_i,
-            :private_networking => tugboat_data['defaults']['private_networking'] == 'true',
-            :backups_enabled => tugboat_data['defaults']['backups_enabled'] == 'true',
-          )
-          if tugboat_data['ssh']['ssh_key_path']
-            new_defaults[:machine_options][:bootstrap_options][:key_path] = tugboat_data['ssh']['ssh_key_path']
+          new_bootstrap_options = new_defaults[:machine_options][:bootstrap_options]
+          if tugboat_data['authentication']
+            new_compute_options[:digitalocean_client_id] = tugboat_data['authentication']['client_key'] if tugboat_data['authentication']['client_key'] && tugboat_data['authentication']['client_key'].size > 0
+            new_compute_options[:digitalocean_api_key]   = tugboat_data['authentication']['api_key']    if tugboat_data['authentication']['api_key']    && tugboat_data['authentication']['api_key'].size > 0
           end
-          ssh_key = tugboat_data['defaults']['ssh_key']
-          if ssh_key && ssh_key.size > 0
-            new_defaults[:machine_options][:bootstrap_options][:key_name] = ssh_key
+          if tugboat_data['defaults']
+            new_bootstrap_options[:region_id] = tugboat_data['defaults']['region'].to_i if tugboat_data['defaults']['region'] && tugboat_data['defaults']['region'].size > 0
+            new_bootstrap_options[:image_id]  = tugboat_data['defaults']['image'].to_i  if tugboat_data['defaults']['image']  && tugboat_data['defaults']['image'].size > 0
+            new_bootstrap_options[:size_id]   = tugboat_data['defaults']['size'].to_i   if tugboat_data['defaults']['size']   && tugboat_data['defaults']['size'].size > 0
+            new_bootstrap_options[:private_networking] = (tugboat_data['defaults']['private_networking'] == 'true') if tugboat_data['defaults']['private_networking'] && tugboat_data['defaults']['private_networking'].size > 0
+            new_bootstrap_options[:backups_enabled]    = (tugboat_data['defaults']['backups_enabled']    == 'true') if tugboat_data['defaults']['backups_enabled'] && tugboat_data['defaults']['backups_enabled'].size > 0
+            new_bootstrap_options[:key_name] = tugboat_data['defaults']['ssh_key'] if tugboat_data['defaults']['ssh_key'] && tugboat_data['defaults']['ssh_key'].size > 0
+          end
+          if tugboat_data['ssh']
+            new_bootstrap_options[:key_path] = tugboat_data['ssh']['ssh_key_path'] if tugboat_data['ssh']['ssh_key_path'] && tugboat_data['ssh']['ssh_key_path'].size > 0
+            new_defaults[:machine_options][:ssh_options][:port] = tugboat_data['ssh']['ssh_port'] if tugboat_data['ssh']['ssh_port'] if tugboat_data['ssh']['ssh_port'].size > 0
           end
         end
-        id = result[:driver_options][:compute_options][:digitalocean_client_id]
 
-        [result, id]
+        [result, new_compute_options[:digitalocean_client_id]]
       end
 
     end
