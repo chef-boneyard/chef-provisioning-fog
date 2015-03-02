@@ -204,8 +204,8 @@ module FogDriver
       start_server(action_handler, machine_spec, server)
       wait_until_ready(action_handler, machine_spec, machine_options, server)
 
-      # Attach floating IPs if necessary
-      attach_floating_ips(action_handler, machine_spec, machine_options, server)
+      # Attach/detach floating IPs if necessary
+      converge_floating_ips(action_handler, machine_spec, machine_options, server)
 
       begin
         wait_for_transport(action_handler, machine_spec, machine_options, server)
@@ -426,18 +426,15 @@ module FogDriver
       end
     end
 
-    # Check given IP already attached and attach if necessary
-    # TODO update to remove old floating IPs that should not be assigned to machine
-    def attach_floating_ips(action_handler, machine_spec, machine_options, server)
+    def converge_floating_ips(action_handler, machine_spec, machine_options, server)
       pool = option_for(machine_options, :floating_ip_pool)
       floating_ip = option_for(machine_options, :floating_ip)
+      attached_floating_ips = find_floating_ips(server)
       if pool
 
-        Chef::Log.info 'Attaching IP from pool'
-        floating_ips = find_floating_ips(server)
-
-        if floating_ips.size > 0
-          Chef::Log.info "Server already assigned floating_ips `#{floating_ips}` from pool `#{pool}`"
+        Chef::Log.debug "Attaching IP from pool #{pool}"
+        if attached_floating_ips.size > 0
+          Chef::Log.info "Server already assigned attached_floating_ips `#{attached_floating_ips}`"
         elsif
           action_handler.perform_action "Attaching floating IP from pool `#{pool}`" do
             attach_ip_from_pool(server, pool)
@@ -446,15 +443,24 @@ module FogDriver
 
       elsif floating_ip
 
-        Chef::Log.info 'Attaching given IP'
-        floating_ips = find_floating_ips(server)
-
-        if floating_ips.include? floating_ip
+        Chef::Log.debug "Attaching given IP #{floating_ip}"
+        if attached_floating_ips.include? floating_ip
           Chef::Log.info "Address <#{floating_ip}> already allocated"
         else
           action_handler.perform_action "Attaching floating IP #{floating_ip}" do
             attach_ip(server, floating_ip)
           end
+        end
+
+      elsif !attached_floating_ips.empty?
+
+        # If nothing is assigned, lets remove any floating IPs
+        Chef::Log.debug 'Missing :floating_ip_pool or :floating_ip, removing attached floating IPs'
+        action_handler.perform_action "Removing floating IPs #{attached_floating_ips}" do
+          attached_floating_ips.each do |ip|
+            server.disassociate_address(ip)
+          end
+          server.reload
         end
 
       end
