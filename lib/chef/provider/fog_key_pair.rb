@@ -18,7 +18,7 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       converge_by "delete #{key_description}" do
         case new_driver.compute_options[:provider]
         when 'DigitalOcean'
-          compute.destroy_key_pair(@current_id)
+          compute.destroy_ssh_key(@current_id)
         when 'Joyent'
           compute.delete_key(@current_id)
         when 'OpenStack', 'Rackspace'
