@@ -434,8 +434,8 @@ module FogDriver
       if pool
 
         Chef::Log.info 'Attaching IP from pool'
-        allocated_addresses = server.addresses[pool] || []
-        floating_ips = allocated_addresses.select {|a_info| a_info['OS-EXT-IPS:type']=='floating'}
+        floating_ips = find_floating_ips(server)
+
         if floating_ips.size > 0
           Chef::Log.info "Server already assigned floating_ips `#{floating_ips}` from pool `#{pool}`"
         elsif
@@ -447,11 +447,9 @@ module FogDriver
       elsif floating_ip
 
         Chef::Log.info 'Attaching given IP'
-        allocated_addresses = []
-        server.addresses.keys.each do |pool|
-          server.addresses[pool].each {|a_info| allocated_addresses<<a_info['addr']}
-        end
-        if allocated_addresses.include? floating_ip
+        floating_ips = find_floating_ips(server)
+
+        if floating_ips.include? floating_ip
           Chef::Log.info "Address <#{floating_ip}> already allocated"
         else
           action_handler.perform_action "Attaching floating IP #{floating_ip}" do
@@ -460,6 +458,19 @@ module FogDriver
         end
 
       end
+    end
+
+    # Find all attached floating IPs from all networks
+    def find_floating_ips(server)
+      floating_ips = []
+      server.addresses.each do |network, addrs|
+        addrs.each do | full_addr |
+          if full_addr['OS-EXT-IPS:type'] == 'floating'
+            floating_ips << full_addr['addr']
+          end
+        end
+      end
+      floating_ips
     end
 
     # Attach IP to machine from IP pool
@@ -484,7 +495,7 @@ module FogDriver
     def attach_ip(server, ip)
       Chef::Log.info "Attaching floating IP <#{ip}>"
       server.associate_address ip
-      (server.addresses['public'] ||= []) << { 'version' => 4, 'addr' => ip }
+      server.reload
     end
 
     def symbolize_keys(options)
