@@ -173,6 +173,14 @@ module FogDriver
         super(machine_spec, machine_options)
       end
 
+      # Attach given IP to machine
+      def attach_ip(server, ip)
+        Chef::Log.info "Attaching floating IP <#{ip}>"
+        compute.associate_address(:instance_id => server.id,
+                                  :allocation_id =>  option_for(machine_options, :allocation_id),
+                                  :public_ip => ip)
+      end
+
       def self.get_aws_profile(driver_options, aws_account_id)
         aws_credentials = get_aws_credentials(driver_options)
         compute_options = driver_options[:compute_options] || {}
