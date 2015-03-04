@@ -37,25 +37,37 @@ module FogDriver
             bootstrap_options[:image_distribution] = 'CentOS'
             bootstrap_options[:image_name] = '6.5 x64'
           end
-          matches = compute.images.select { |image| image.distribution == bootstrap_options[:image_distribution] }
-          matches = matches.select { |image| image.name == bootstrap_options[:image_name] } if bootstrap_options[:image_name]
-          if matches.empty?
+          distributions = compute.images.select { |image| image.distribution == bootstrap_options[:image_distribution] }
+          if distributions.empty?
+            raise "No images on DigitalOcean with distribution #{bootstrap_options[:image_distribution].inspect}"
+          end
+          images = distributions.select { |image| image.name == bootstrap_options[:image_name] } if bootstrap_options[:image_name]
+          if images.empty?
             raise "No images on DigitalOcean with distribution #{bootstrap_options[:image_distribution].inspect} and name #{bootstrap_options[:image_name].inspect}"
           end
-          bootstrap_options[:image_id] = matches.first.id
+          bootstrap_options[:image_id] = images.first.id
         end
         if !bootstrap_options[:flavor_id]
           bootstrap_options[:flavor_name] ||= '512MB'
-          bootstrap_options[:flavor_id] = compute.flavors.select { |flavor| flavor.name == bootstrap_options[:flavor_name] }.first.id
+          flavors == compute.flavors.select { |flavor| flavor.name == bootstrap_options[:flavor_name] }
+          if flavors.empty?
+            raise "Could not find flavor named '#{bootstrap_options[:flavor_name]}' on #{driver_url}"
+          end
+          bootstrap_options[:flavor_id] = flavors.first.id
         end
         if !bootstrap_options[:region_id]
           bootstrap_options[:region_name] ||= 'San Francisco 1'
-          bootstrap_options[:region_id] = compute.regions.select { |region| region.name == bootstrap_options[:region_name] }.first.id
+          regions = compute.regions.select { |region| region.name == bootstrap_options[:region_name] }
+          if regions.empty?
+            raise "Could not find region named '#{bootstrap_options[:region_name]}' on #{driver_url}"
+          end
+          bootstrap_options[:region_id] = regions.first.id
         end
-        found_key = compute.ssh_keys.select { |k| k.name == bootstrap_options[:key_name] }.first
-        if !found_key
+        keys = compute.ssh_keys.select { |k| k.name == bootstrap_options[:key_name] }
+        if keys.empty?
           raise "Could not find key named '#{bootstrap_options[:key_name]}' on #{driver_url}"
         end
+        found_key = keys.first
         bootstrap_options[:ssh_key_ids] ||= [ found_key.id ]
 
         # You don't get to specify name yourself
