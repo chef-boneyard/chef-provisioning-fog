@@ -49,7 +49,9 @@ module FogDriver
         end
         if !bootstrap_options[:flavor_id]
           bootstrap_options[:flavor_name] ||= '512MB'
-          flavors == compute.flavors.select { |flavor| flavor.name == bootstrap_options[:flavor_name] }
+          flavors = compute.flavors.select do |f|
+            f.name == bootstrap_options[:flavor_name]
+          end
           if flavors.empty?
             raise "Could not find flavor named '#{bootstrap_options[:flavor_name]}' on #{driver_url}"
           end
