@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1 (3/4/2015
+
+- Fixed floating assignment for Openstack (@tyler-ball)
+
 ## 0.13 (2/25/2015)
 
 - Support for ~/.aws/credentials (@miguelcnf)
