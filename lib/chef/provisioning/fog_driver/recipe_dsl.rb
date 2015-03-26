@@ -1,4 +1,4 @@
-require 'chef_metal_fog/fog_driver'
+require 'chef/provisioning/fog_driver/driver'
 require 'chef/resource/fog_key_pair'
 require 'chef/provider/fog_key_pair'
 
@@ -7,8 +7,8 @@ class Chef
     module Recipe
       def with_fog_driver(provider, driver_options = nil, &block)
         config = Cheffish::MergedConfig.new({ :driver_options => driver_options }, run_context.config)
-        driver = ChefMetalFog::FogDriver.from_provider(provider, config)
-        run_context.chef_metal.with_driver(driver, &block)
+        driver = Driver.from_provider(provider, config)
+        run_context.chef_provisioning.with_driver(driver, &block)
       end
 
       def with_fog_ec2_driver(driver_options = nil, &block)
@@ -22,7 +22,7 @@ class Chef
       def with_fog_rackspace_driver(driver_options = nil, &block)
         with_fog_driver('Rackspace', driver_options, &block)
       end
-      
+
     end
   end
 end

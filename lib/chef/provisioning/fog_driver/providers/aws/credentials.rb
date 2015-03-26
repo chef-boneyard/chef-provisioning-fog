@@ -1,7 +1,10 @@
 require 'inifile'
 require 'csv'
+require 'chef/mixin/deep_merge'
 
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
     class AWS
       # Reads in a credentials file in Amazon's download format and presents the credentials to you
@@ -11,10 +14,11 @@ module ChefMetalFog
         end
 
         include Enumerable
+        include Chef::Mixin::DeepMerge
 
         def default
           if @credentials.size == 0
-            raise "No credentials loaded!  Do you have a ~/.aws/config?"
+            raise "No credentials loaded!  Do you have one of ~/.aws/credentials or ~/.aws/config?"
           end
           @credentials[ENV['AWS_DEFAULT_PROFILE'] || 'default'] || @credentials.first[1]
         end
@@ -31,8 +35,16 @@ module ChefMetalFog
           @credentials.each(&block)
         end
 
-        def load_ini(credentials_ini_file)
-          inifile = IniFile.load(File.expand_path(credentials_ini_file))
+        def load_inis(config_ini_file, credentials_ini_file = nil)
+          @credentials = load_config_ini(config_ini_file)
+          @credentials = deep_merge!(@credentials,
+                                     load_credentials_ini(credentials_ini_file)
+                                    ) if credentials_ini_file
+        end
+
+        def load_config_ini(config_ini_file)
+          inifile = IniFile.load(File.expand_path(config_ini_file))
+          config = {}
           if inifile
             inifile.each_section do |section|
               if section =~ /^\s*profile\s+(.+)$/ || section =~ /^\s*(default)\s*/
@@ -42,14 +54,27 @@ module ChefMetalFog
                   result
                 end
                 profile[:name] = profile_name
-                @credentials[profile_name] = profile
+                config[profile_name] = profile
               end
             end
-          else
-            # Get it to throw an error
-            File.open(File.expand_path(credentials_ini_file)) do
+          end
+          config
+        end
+
+        def load_credentials_ini(credentials_ini_file)
+          inifile = IniFile.load(File.expand_path(credentials_ini_file))
+          config = {}
+          if inifile
+            inifile.each_section do |section|
+              profile = inifile[section].inject({}) do |result, pair|
+                result[pair[0].to_sym] = pair[1]
+                result
+              end
+              profile[:name] = section
+              config[section] = profile
             end
           end
+          config
         end
 
         def load_csv(credentials_csv_file)
@@ -65,8 +90,13 @@ module ChefMetalFog
 
         def load_default
           config_file = ENV['AWS_CONFIG_FILE'] || File.expand_path('~/.aws/config')
+          credentials_file = ENV['AWS_CREDENTIAL_FILE'] || File.expand_path('~/.aws/credentials')
           if File.file?(config_file)
-            load_ini(config_file)
+            if File.file?(credentials_file)
+              load_inis(config_file, credentials_file)
+            else
+              load_inis(config_file)
+            end
           end
         end
 
@@ -80,4 +110,6 @@ module ChefMetalFog
       end
     end
   end
+end
+end
 end

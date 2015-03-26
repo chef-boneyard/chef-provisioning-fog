@@ -1,17 +1,17 @@
 require 'spec_helper'
-require 'chef_metal_fog/fog_driver'
+require 'chef/provisioning/fog_driver'
 
-describe ChefMetalFog::FogDriver do
+describe Chef::Provisioning::FogDriver do
 
   describe ".from_url" do
-    subject { ChefMetalFog::FogDriver.from_provider('TestDriver', {}) }
+    subject { Chef::Provisioning::FogDriver.from_provider('TestDriver', {}) }
 
     it "should return the correct class" do
-      expect(subject).to be_an_instance_of ChefMetalFog::Providers::TestDriver
+      expect(subject).to be_an_instance_of Chef::Provisioning::FogDriver::Providers::TestDriver
     end
 
     it "should call the target compute_options_for" do
-      expect(ChefMetalFog::Providers::TestDriver).to receive(:compute_options_for)
+      expect(Chef::Provisioning::FogDriver::Providers::TestDriver).to receive(:compute_options_for)
         .with('TestDriver', anything, {}).and_return([{}, 'test']).twice
       subject
     end
@@ -20,13 +20,13 @@ describe ChefMetalFog::FogDriver do
 
   describe "when creating a new class" do
     it "should return the correct class" do
-      test = ChefMetalFog::FogDriver.new('fog:TestDriver:foo', {})
-      expect(test).to be_an_instance_of ChefMetalFog::Providers::TestDriver
+      test = Chef::Provisioning::FogDriver.new('fog:TestDriver:foo', {})
+      expect(test).to be_an_instance_of Chef::Provisioning::FogDriver::Providers::TestDriver
     end
 
     it "should populate config" do
-      test = ChefMetalFog::FogDriver.new('fog:TestDriver:foo', {test: "metal"})
-      expect(test.config[:test]).to eq "metal"
+      test = Chef::Provisioning::FogDriver.new('fog:TestDriver:foo', {test: "chef_provisioning"})
+      expect(test.config[:test]).to eq "chef_provisioning"
     end
   end
 end

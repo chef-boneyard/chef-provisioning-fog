@@ -1,17 +1,23 @@
 require 'chef/log'
 require 'fog/aws'
 require 'uri'
+require 'base64'
+require 'openssl'
+require 'pathname'
+require 'chef/provisioning/transport/winrm'
 
 #   fog:AWS:<account_id>:<region>
 #   fog:AWS:<profile_name>
 #   fog:AWS:<profile_name>:<region>
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class AWS < ChefMetalFog::FogDriver
+    class AWS < FogDriver::Driver
 
       require_relative 'aws/credentials'
 
-      ChefMetalFog::FogDriver.register_provider_class('AWS', ChefMetalFog::Providers::AWS)
+      Driver.register_provider_class('AWS', FogDriver::Providers::AWS)
 
       def creator
         driver_options[:aws_account_info][:aws_username]
@@ -19,6 +25,45 @@ module ChefMetalFog
 
       def default_ssh_username
         'ubuntu'
+      end
+
+      # Create a WinRM transport for an AWS instance
+      # @param [Hash] machine_spec Machine-spec hash
+      # @param [Hash] machine_options Machine options (from the recipe)
+      # @param [Fog::Compute::Server] server A Fog mapping to the AWS instance
+      # @return [ChefMetal::Transport::WinRM] A WinRM Transport object to talk to the server
+      def create_winrm_transport(machine_spec, machine_options, server)
+        remote_host = if machine_spec.location['use_private_ip_for_ssh']
+                        server.private_ip_address
+                      elsif !server.public_ip_address
+                        Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
+                        server.private_ip_address
+                      elsif server.public_ip_address
+                        server.public_ip_address
+                      else
+                        fail "Server #{server.id} has no private or public IP address!"
+                      end
+
+        port = machine_spec.location['winrm_port'] || 5985
+        endpoint = "http://#{remote_host}:#{port}/wsman"
+        type = :plaintext
+        pem_bytes = private_key_for(machine_spec, machine_options, server)
+        encrypted_admin_password = wait_for_admin_password(machine_spec)
+        decoded = Base64.decode64(encrypted_admin_password)
+        private_key = OpenSSL::PKey::RSA.new(pem_bytes)
+        decrypted_password = private_key.private_decrypt decoded
+
+        # Use basic HTTP auth - this is required for the WinRM setup we
+        # are using
+        # TODO: Improve that.
+        options = {
+            :user => machine_spec.location['winrm.username'] || 'Administrator',
+            :pass => decrypted_password,
+            :disable_sspi => true,
+            :basic_auth_only => true
+        }
+
+        Chef::Provisioning::Transport::WinRM.new(endpoint, type, options, {})
       end
 
       def allocate_image(action_handler, image_spec, image_options, machine_spec)
@@ -37,7 +82,7 @@ module ChefMetalFog
                                        opt)
           image_spec.location = {
             'driver_url' => driver_url,
-            'driver_version' => ChefMetalFog::VERSION,
+            'driver_version' => FogDriver::VERSION,
             'image_id' => response.body['imageId'],
             'creator' => creator,
             'allocated_at' => Time.now.to_i
@@ -83,7 +128,13 @@ module ChefMetalFog
         bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
         if !bootstrap_options[:key_name]
-          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler)
+          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler, machine_spec)
+        end
+
+        if machine_options[:is_windows]
+          Chef::Log.debug('Attaching WinRM data for user data.')
+          # Enable WinRM basic auth, HTTP and open the firewall
+          bootstrap_options[:user_data] = user_data
         end
         bootstrap_options.delete(:tags) # we handle these separately for performance reasons
         bootstrap_options
@@ -116,8 +167,18 @@ module ChefMetalFog
       end
 
       def convergence_strategy_for(machine_spec, machine_options)
-        machine_options[:convergence_options][:ohai_hints] = { 'ec2' => ''}
+        machine_options = Cheffish::MergedConfig.new(machine_options, {
+          :convergence_options => {:ohai_hints => {'ec2' => ''}}
+        })
         super(machine_spec, machine_options)
+      end
+
+      # Attach given IP to machine
+      def attach_ip(server, ip)
+        Chef::Log.info "Attaching floating IP <#{ip}>"
+        compute.associate_address(:instance_id => server.id,
+                                  :allocation_id =>  option_for(machine_options, :allocation_id),
+                                  :public_ip => ip)
       end
 
       def self.get_aws_profile(driver_options, aws_account_id)
@@ -127,7 +188,7 @@ module ChefMetalFog
         # Order of operations:
         # compute_options[:aws_access_key_id] / compute_options[:aws_secret_access_key] / compute_options[:aws_security_token] / compute_options[:region]
         # compute_options[:aws_profile]
-        # ENV['AWS_ACCESS_KEY_ID'] / ENV['AWS_SECRET_ACCESS_KEY'] / ENV['AWS_SECURITY_TOKEN'] / ENV['AWS_REGION']
+        # ENV['AWS_ACCESS_KEY_ID'] / ENV['AWS_SECRET_ACCESS_KEY'] / ENV['AWS_SECURITY_TOKEN'] / ENV['AWS_DEFAULT_REGION']
         # ENV['AWS_PROFILE']
         # ENV['DEFAULT_PROFILE']
         # 'default'
@@ -148,7 +209,7 @@ module ChefMetalFog
             :aws_access_key_id => ENV['AWS_ACCESS_KEY_ID'] || ENV['AWS_ACCESS_KEY'],
             :aws_secret_access_key => ENV['AWS_SECRET_ACCESS_KEY'] || ENV['AWS_SECRET_KEY'],
             :aws_security_token => ENV['AWS_SECURITY_TOKEN'],
-            :region => ENV['AWS_REGION']
+            :region => ENV['AWS_DEFAULT_REGION'] || ENV['AWS_REGION'] || ENV['EC2_REGION']
           }
         elsif ENV['AWS_PROFILE']
           Chef::Log.debug("Using AWS profile #{ENV['AWS_PROFILE']} from AWS_PROFILE environment variable")
@@ -172,12 +233,10 @@ module ChefMetalFog
         # If no profile is found (or the profile is not the right account), search
         # for a profile that matches the given account ID
         if aws_account_id && (!aws_profile || aws_profile[:aws_account_id] != aws_account_id)
-          aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id, iam_endpoint)
+          aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id, default_iam_endpoint)
         end
 
-        if !aws_profile
-          raise "No AWS profile specified!  Are you missing something in the Chef config or ~/.aws/config?"
-        end
+        fail 'No AWS profile specified! Are you missing something in the Chef or AWS config?' unless aws_profile
 
         aws_profile[:ec2_endpoint] ||= default_ec2_endpoint
         aws_profile[:iam_endpoint] ||= default_iam_endpoint
@@ -206,7 +265,7 @@ module ChefMetalFog
         if aws_profile
           Chef::Log.info("Discovered AWS profile #{aws_profile[:name]} pointing at account #{aws_account_id}.  Using ...")
         else
-          raise "No AWS profile leads to account ##{aws_account_id}.  Do you need to add profiles to ~/.aws/config?"
+          raise "No AWS profile leads to account #{aws_account_id}.  Do you need to add profiles to the AWS config?"
         end
         aws_profile
       end
@@ -263,9 +322,9 @@ module ChefMetalFog
         else
           aws_credentials = Credentials.new
           if driver_options[:aws_config_file]
-            aws_credentials.load_ini(driver_options.delete(:aws_config_file))
+            aws_credentials.load_ini(driver_options[:aws_config_file])
           elsif driver_options[:aws_csv_file]
-            aws_credentials.load_csv(driver_options.delete(:aws_csv_file))
+            aws_credentials.load_csv(driver_options[:aws_csv_file])
           else
             aws_credentials.load_default
           end
@@ -285,12 +344,12 @@ module ChefMetalFog
 
         if id && id != ''
           # AWS canonical URLs are of the form fog:AWS:
-          if id =~ /^(\d{12})(:(.+))?$/
+          if id =~ /^(\d{12}|IAM)(:(.+))?$/
             if $2
               id = $1
               new_compute_options[:region] = $3
             else
-              Chef::Log.warn("Old-style AWS URL #{id} from an early beta of chef-metal (before 0.11-final) found. If you have servers in multiple regions on this account, you may see odd behavior like servers being recreated. To fix, edit any nodes with attribute metal.location.driver_url to include the region like so: fog:AWS:#{id}:<region> (e.g. us-east-1)")
+              Chef::Log.warn("Old-style AWS URL #{id} from an early beta of chef-metal (before 0.11-final) found. If you have servers in multiple regions on this account, you may see odd behavior like servers being recreated. To fix, edit any nodes with attribute chef_provisioning.location.driver_url to include the region like so: fog:AWS:#{id}:<region> (e.g. us-east-1)")
             end
           else
             # Assume it is a profile name, and set that.
@@ -300,17 +359,22 @@ module ChefMetalFog
             id = nil
           end
         end
+        if id == 'IAM'
+          id = "IAM:#{result[:driver_options][:compute_options][:region]}"
+          new_config[:driver_options][:aws_account_info] = { aws_username: 'IAM' }
+          new_compute_options[:use_iam_profile] = true
+        else
+          aws_profile = get_aws_profile(result[:driver_options], id)
+          new_compute_options[:aws_access_key_id] = aws_profile[:aws_access_key_id]
+          new_compute_options[:aws_secret_access_key] = aws_profile[:aws_secret_access_key]
+          new_compute_options[:aws_session_token] = aws_profile[:aws_security_token]
+          new_defaults[:driver_options][:compute_options][:region] = aws_profile[:region]
+          new_defaults[:driver_options][:compute_options][:endpoint] = aws_profile[:ec2_endpoint]
 
-        aws_profile = get_aws_profile(result[:driver_options], id)
-        new_compute_options[:aws_access_key_id] = aws_profile[:aws_access_key_id]
-        new_compute_options[:aws_secret_access_key] = aws_profile[:aws_secret_access_key]
-        new_compute_options[:aws_session_token] = aws_profile[:aws_security_token]
-        new_defaults[:driver_options][:compute_options][:region] = aws_profile[:region]
-        new_defaults[:driver_options][:compute_options][:endpoint] = aws_profile[:ec2_endpoint]
-
-        account_info = aws_account_info_for(result[:driver_options][:compute_options])
-        new_config[:driver_options][:aws_account_info] = account_info
-        id = "#{account_info[:aws_account_id]}:#{result[:driver_options][:compute_options][:region]}"
+          account_info = aws_account_info_for(result[:driver_options][:compute_options])
+          new_config[:driver_options][:aws_account_info] = account_info
+          id = "#{account_info[:aws_account_id]}:#{result[:driver_options][:compute_options][:region]}"
+        end
 
         # Make sure we're using a reasonable default AMI, for now this is Ubuntu 14.04 LTS
         result[:machine_options][:bootstrap_options][:image_id] ||=
@@ -350,6 +414,27 @@ module ChefMetalFog
       end
 
       private
+      def user_data
+        # TODO: Make this use HTTPS at some point.
+        <<EOD
+<powershell>
+winrm quickconfig -q
+winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="300"}'
+winrm set winrm/config '@{MaxTimeoutms="1800000"}'
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/service/auth '@{Basic="true"}'
+
+netsh advfirewall firewall add rule name="WinRM 5985" protocol=TCP dir=in localport=5985 action=allow
+netsh advfirewall firewall add rule name="WinRM 5986" protocol=TCP dir=in localport=5986 action=allow
+
+net stop winrm
+sc config winrm start=auto
+net start winrm
+</powershell>
+
+EOD
+      end
+
       def self.default_ami_for_region(region)
         Chef::Log.debug("Choosing default AMI for region '#{region}'")
 
@@ -373,6 +458,35 @@ module ChefMetalFog
         end
       end
 
+      # Wait for the Windows Admin password to become available
+      # @param [Hash] machine_spec Machine spec data
+      # @return [String] encrypted admin password
+      def wait_for_admin_password(machine_spec)
+        time_elapsed = 0
+        sleep_time = 10
+        max_wait_time = 900 # 15 minutes
+        encrypted_admin_password = nil
+        instance_id = machine_spec.location['server_id']
+
+
+        Chef::Log.info "waiting for #{machine_spec.name}'s admin password to be available..."
+        while time_elapsed < max_wait_time && encrypted_admin_password.nil?
+          response = compute.get_password_data(instance_id)
+          encrypted_admin_password = response.body['passwordData']
+          if encrypted_admin_password.nil?
+            Chef::Log.info "#{time_elapsed}/#{max_wait_time}s elapsed -- sleeping #{sleep_time} seconds for #{machine_spec.name}'s admin password."
+            sleep(sleep_time)
+            time_elapsed += sleep_time
+          end
+        end
+
+        Chef::Log.info "#{machine_spec.name}'s admin password is available!'"
+
+        encrypted_admin_password
+      end
+
     end
   end
+end
+end
 end

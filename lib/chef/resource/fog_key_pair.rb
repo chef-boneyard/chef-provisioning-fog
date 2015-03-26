@@ -1,11 +1,11 @@
-require 'chef_metal'
+require 'chef/provisioning'
 
 class Chef::Resource::FogKeyPair < Chef::Resource::LWRPBase
   self.resource_name = 'fog_key_pair'
 
   def initialize(*args)
     super
-    @driver = run_context.chef_metal.current_driver
+    @driver = run_context.chef_provisioning.current_driver
   end
 
   actions :create, :delete, :nothing
@@ -28,7 +28,7 @@ class Chef::Resource::FogKeyPair < Chef::Resource::LWRPBase
   end
 
   # We are not interested in Chef's cloning behavior here.
-  def load_prior_resource
+  def load_prior_resource(*args)
     Chef::Log.debug("Overloading #{resource_name}.load_prior_resource with NOOP")
   end
 end

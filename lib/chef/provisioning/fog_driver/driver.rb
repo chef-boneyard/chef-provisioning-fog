@@ -1,13 +1,18 @@
-require 'chef_metal/driver'
-require 'chef_metal/machine/windows_machine'
-require 'chef_metal/machine/unix_machine'
-require 'chef_metal/machine_spec'
-require 'chef_metal/convergence_strategy/install_msi'
-require 'chef_metal/convergence_strategy/install_sh'
-require 'chef_metal/convergence_strategy/install_cached'
-require 'chef_metal/convergence_strategy/no_converge'
-require 'chef_metal/transport/ssh'
-require 'chef_metal_fog/version'
+require 'chef/provisioning'
+require 'chef/provisioning/fog_driver/recipe_dsl'
+
+require 'chef/provisioning/driver'
+require 'chef/provisioning/machine/windows_machine'
+require 'chef/provisioning/machine/unix_machine'
+require 'chef/provisioning/machine_spec'
+require 'chef/provisioning/convergence_strategy/install_msi'
+require 'chef/provisioning/convergence_strategy/install_sh'
+require 'chef/provisioning/convergence_strategy/install_cached'
+require 'chef/provisioning/convergence_strategy/no_converge'
+require 'chef/provisioning/transport/ssh'
+require 'chef/provisioning/transport/winrm'
+require 'chef/provisioning/fog_driver/version'
+
 require 'fog'
 require 'fog/core'
 require 'fog/compute'
@@ -15,14 +20,16 @@ require 'socket'
 require 'etc'
 require 'time'
 require 'cheffish/merged_config'
-require 'chef_metal_fog/recipe_dsl'
+require 'chef/provisioning/fog_driver/recipe_dsl'
 
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   # Provisions cloud machines with the Fog driver.
   #
   # ## Fog Driver URLs
   #
-  # All Metal drivers use URLs to uniquely identify a driver's "bucket" of machines.
+  # All Chef Provisioning drivers use URLs to uniquely identify a driver's "bucket" of machines.
   # Fog URLs are of the form fog:<provider>:<identifier:> - see individual providers
   # for sample URLs.
   #
@@ -40,14 +47,14 @@ module ChefMetalFog
   # ## Supporting a new Fog provider
   #
   # The Fog driver does not immediately support all Fog providers out of the box.
-  # Some minor work needs to be done to plug them into metal.
+  # Some minor work needs to be done to plug them into Chef.
   #
   # To add a new supported Fog provider, pick an appropriate identifier, go to
   # from_provider and compute_options_for, and add the new provider in the case
   # statements so that URLs for your fog provider can be generated.  If your
   # cloud provider has environment variables or standard config files (like
-  # ~/.aws/config), you can read those and merge that information in the
-  # compute_options_for function.
+  # ~/.aws/credentials or ~/.aws/config), you can read those and merge that information
+  # in the compute_options_for function.
   #
   # ## Location format
   #
@@ -71,7 +78,7 @@ module ChefMetalFog
   # - ssh_timeout: the time to wait for ssh to be available if the instance is detected as up (defaults to 20)
   # - ssh_username: username to use for ssh
   # - sudo: true to prefix all commands with "sudo"
-  # - use_private_ip_for_ssh: hint to use private ip when available
+  # - use_private_ip_for_ssh: hint to use private floating_ip when available
   # - convergence_options: hash of options for the convergence strategy
   #   - chef_client_timeout: the time to wait for chef-client to finish
   #   - chef_server - the chef server to point convergence at
@@ -84,7 +91,8 @@ module ChefMetalFog
   #     :key_name => 'key-pair-name'
   #   }
   #
-  class FogDriver < ChefMetal::Driver
+  class Driver < Provisioning::Driver
+    @@ip_pool_lock = Mutex.new
 
     include Chef::Mixin::ShellOut
 
@@ -110,7 +118,7 @@ module ChefMetalFog
     end
 
     def self.provider_class_for(provider)
-      require "chef_metal_fog/providers/#{provider.downcase}"
+      require "chef/provisioning/fog_driver/providers/#{provider.downcase}"
       @@registered_provider_classes[provider]
     end
 
@@ -121,7 +129,7 @@ module ChefMetalFog
 
     # Passed in a driver_url, and a config in the format of Driver.config.
     def self.from_url(driver_url, config)
-      FogDriver.new(driver_url, config)
+      Driver.new(driver_url, config)
     end
 
     def self.canonicalize_url(driver_url, config)
@@ -138,7 +146,7 @@ module ChefMetalFog
 
       driver_url = "fog:#{provider}:#{id}"
 
-      ChefMetal.driver_for_url(driver_url, config)
+      Provisioning.driver_for_url(driver_url, config)
     end
 
     # Create a new fog driver.
@@ -148,7 +156,7 @@ module ChefMetalFog
     # config - configuration.  :driver_options, :keys, :key_paths and :log_level are used.
     #   driver_options is a hash with these possible options:
     #   - compute_options: the hash of options to Fog::Compute.new.
-    #   - aws_config_file: aws config file (default: ~/.aws/config)
+    #   - aws_config_file: aws config file (defaults: ~/.aws/credentials, ~/.aws/config)
     #   - aws_csv_file: aws csv credentials file downloaded from EC2 interface
     #   - aws_profile: profile name to use for credentials
     #   - aws_credentials: AWSCredentials object. (will be created for you by default)
@@ -192,12 +200,13 @@ module ChefMetalFog
         raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
       end
 
-      # Attach floating IPs if necessary
-      attach_floating_ips(action_handler, machine_spec, machine_options, server)
-
       # Start the server if needed, and wait for it to start
       start_server(action_handler, machine_spec, server)
       wait_until_ready(action_handler, machine_spec, machine_options, server)
+
+      # Attach/detach floating IPs if necessary
+      converge_floating_ips(action_handler, machine_spec, machine_options, server)
+
       begin
         wait_for_transport(action_handler, machine_spec, machine_options, server)
       rescue Fog::Errors::TimeoutError
@@ -253,9 +262,15 @@ module ChefMetalFog
     end
 
     # Not meant to be part of public interface
-    def transport_for(machine_spec, machine_options, server)
-      # TODO winrm
-      create_ssh_transport(machine_spec, machine_options, server)
+    def transport_for(machine_spec, machine_options, server, action_handler = nil)
+      if machine_spec.location['is_windows']
+        action_handler.report_progress "Waiting for admin password on #{machine_spec.name} to be ready (may take up to 15 minutes)..." if action_handler
+        transport = create_winrm_transport(machine_spec, machine_options, server)
+        action_handler.report_progress 'Admin password available ...' if action_handler
+        transport
+      else
+        create_ssh_transport(machine_spec, machine_options, server)
+      end
     end
 
     protected
@@ -303,7 +318,6 @@ module ChefMetalFog
         description = [ "creating #{machine_description} on #{driver_url}" ]
         bootstrap_options.each_pair { |key,value| description << "  #{key}: #{value.inspect}" }
         action_handler.report_progress description
-
         if action_handler.should_perform_actions
           # Actually create the servers
           create_many_servers(machine_specs.size, bootstrap_options, parallelizer) do |server|
@@ -313,7 +327,7 @@ module ChefMetalFog
             machine_options = specs_and_options[machine_spec]
             machine_spec.location = {
               'driver_url' => driver_url,
-              'driver_version' => ChefMetalFog::VERSION,
+              'driver_version' => FogDriver::VERSION,
               'server_id' => server.id,
               'creator' => creator,
               'allocated_at' => Time.now.to_i
@@ -328,7 +342,7 @@ module ChefMetalFog
           end
 
           if machine_specs.size > 0
-            raise "Not all machines were created by create_many_machines!"
+            raise "Not all machines were created by create_many_servers!"
           end
         end
       end.to_a
@@ -336,7 +350,8 @@ module ChefMetalFog
 
     def create_many_servers(num_servers, bootstrap_options, parallelizer)
       parallelizer.parallelize(1.upto(num_servers)) do |i|
-        server = compute.servers.create(bootstrap_options)
+        clean_bootstrap_options = Marshal.load(Marshal.dump(bootstrap_options)) # Prevent destructive operations on bootstrap_options.
+        server = compute.servers.create(clean_bootstrap_options)
         yield server if block_given?
         server
       end.to_a
@@ -395,7 +410,8 @@ module ChefMetalFog
     end
 
     def wait_for_transport(action_handler, machine_spec, machine_options, server)
-      transport = transport_for(machine_spec, machine_options, server)
+
+      transport = transport_for(machine_spec, machine_options, server, action_handler)
       if !transport.available?
         if action_handler.should_perform_actions
           action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running) ..."
@@ -410,46 +426,82 @@ module ChefMetalFog
       end
     end
 
-    def attach_floating_ips(action_handler, machine_spec, machine_options, server)
-      # TODO this is not particularly idempotent. OK, it is not idempotent AT ALL.  Fix.
-      if option_for(machine_options, :floating_ip_pool)
-        Chef::Log.info 'Attaching IP from pool'
-        action_handler.perform_action "attach floating IP from #{option_for(machine_options, :floating_ip_pool)} pool" do
-          attach_ip_from_pool(server, option_for(machine_options, :floating_ip_pool))
+    def converge_floating_ips(action_handler, machine_spec, machine_options, server)
+      pool = option_for(machine_options, :floating_ip_pool)
+      floating_ip = option_for(machine_options, :floating_ip)
+      attached_floating_ips = find_floating_ips(server)
+      if pool
+
+        Chef::Log.debug "Attaching IP from pool #{pool}"
+        if attached_floating_ips.size > 0
+          Chef::Log.info "Server already assigned attached_floating_ips `#{attached_floating_ips}`"
+        elsif
+          action_handler.perform_action "Attaching floating IP from pool `#{pool}`" do
+            attach_ip_from_pool(server, pool)
+          end
         end
-      elsif option_for(machine_options, :floating_ip)
-        Chef::Log.info 'Attaching given IP'
-        action_handler.perform_action "attach floating IP #{option_for(machine_options, :floating_ip)}" do
-          attach_ip(server, option_for(machine_options, :allocation_id), option_for(machine_options, :floating_ip))
+
+      elsif floating_ip
+
+        Chef::Log.debug "Attaching given IP #{floating_ip}"
+        if attached_floating_ips.include? floating_ip
+          Chef::Log.info "Address <#{floating_ip}> already allocated"
+        else
+          action_handler.perform_action "Attaching floating IP #{floating_ip}" do
+            attach_ip(server, floating_ip)
+          end
+        end
+
+      elsif !attached_floating_ips.empty?
+
+        # If nothing is assigned, lets remove any floating IPs
+        Chef::Log.debug 'Missing :floating_ip_pool or :floating_ip, removing attached floating IPs'
+        action_handler.perform_action "Removing floating IPs #{attached_floating_ips}" do
+          attached_floating_ips.each do |ip|
+            server.disassociate_address(ip)
+          end
+          server.reload
+        end
+
+      end
+    end
+
+    # Find all attached floating IPs from all networks
+    def find_floating_ips(server)
+      floating_ips = []
+      server.addresses.each do |network, addrs|
+        addrs.each do | full_addr |
+          if full_addr['OS-EXT-IPS:type'] == 'floating'
+            floating_ips << full_addr['addr']
+          end
         end
       end
+      floating_ips
     end
 
     # Attach IP to machine from IP pool
     # Code taken from kitchen-openstack driver
-    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb#L196-L207
+    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb
     def attach_ip_from_pool(server, pool)
-      @ip_pool_lock ||= Mutex.new
-      @ip_pool_lock.synchronize do
+      @@ip_pool_lock.synchronize do
         Chef::Log.info "Attaching floating IP from <#{pool}> pool"
-        free_addrs = compute.addresses.collect do |i|
-          i.ip if i.fixed_ip.nil? and i.instance_id.nil? and i.pool == pool
+        free_addrs = compute.addresses.map do |i|
+          i.ip if i.fixed_ip.nil? && i.instance_id.nil? && i.pool == pool
         end.compact
         if free_addrs.empty?
-          raise ActionFailed, "No available IPs in pool <#{pool}>"
+          raise RuntimeError, "No available IPs in pool <#{pool}>"
         end
         attach_ip(server, free_addrs[0])
       end
     end
 
-    # Attach given IP to machine
+    # Attach given IP to machine, assign it as public
     # Code taken from kitchen-openstack driver
-    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb#L209-L213
-    def attach_ip(server, allocation_id, ip)
+    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb
+    def attach_ip(server, ip)
       Chef::Log.info "Attaching floating IP <#{ip}>"
-      compute.associate_address(:instance_id => server.id,
-                                :allocation_id => allocation_id,
-                                :public_ip => ip)
+      server.associate_address ip
+      server.reload
     end
 
     def symbolize_keys(options)
@@ -482,13 +534,18 @@ module ChefMetalFog
       result
     end
 
-    @@metal_default_lock = Mutex.new
+    @@chef_default_lock = Mutex.new
 
-    def overwrite_default_key_willy_nilly(action_handler)
+    def overwrite_default_key_willy_nilly(action_handler, machine_spec)
+      if machine_spec.location &&
+         Gem::Version.new(machine_spec.location['driver_version']) < Gem::Version.new('0.10')
+        return 'metal_default'
+      end
+
       driver = self
-      updated = @@metal_default_lock.synchronize do
-        ChefMetal.inline_resource(action_handler) do
-          fog_key_pair 'metal_default' do
+      updated = @@chef_default_lock.synchronize do
+        Provisioning.inline_resource(action_handler) do
+          fog_key_pair 'chef_default' do
             driver driver
             allow_overwrite true
           end
@@ -496,9 +553,9 @@ module ChefMetalFog
       end
       if updated
         # Only warn the first time
-        Chef::Log.warn("Using metal_default key, which is not shared between machines!  It is recommended to create an AWS key pair with the fog_key_pair resource, and set :bootstrap_options => { :key_name => <key name> }")
+        Chef::Log.warn("Using chef_default key, which is not shared between machines!  It is recommended to create an AWS key pair with the fog_key_pair resource, and set :bootstrap_options => { :key_name => <key name> }")
       end
-      'metal_default'
+      'chef_default'
     end
 
     def bootstrap_options_for(action_handler, machine_spec, machine_options)
@@ -529,49 +586,67 @@ module ChefMetalFog
       end
 
       if machine_spec.location['is_windows']
-        ChefMetal::Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
+        Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       else
-        ChefMetal::Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
+        Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       end
     end
 
     def convergence_strategy_for(machine_spec, machine_options)
       # Defaults
       if !machine_spec.location
-        return ChefMetal::ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
+        return ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
       end
 
       if machine_spec.location['is_windows']
-        ChefMetal::ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
+        ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
       elsif machine_options[:cached_installer] == true
-        ChefMetal::ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
+        ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
       else
-        ChefMetal::ConvergenceStrategy::InstallSh.new(machine_options[:convergence_options], config)
+        ConvergenceStrategy::InstallSh.new(machine_options[:convergence_options], config)
+      end
+    end
+
+    # Get the private key for a machine - prioritize the server data, fall back to the
+    # the machine spec data, and if that doesn't work, raise an exception.
+    # @param [Hash] machine_spec Machine spec data
+    # @param [Hash] machine_options Machine options
+    # @param [Chef::Provisioning::Machine] server a Machine representing the server
+    # @return [String] PEM-encoded private key
+    def private_key_for(machine_spec, machine_options, server)
+      if server.respond_to?(:private_key) && server.private_key
+         server.private_key
+      elsif server.respond_to?(:key_name) && server.key_name
+        key = get_private_key(server.key_name)
+        if !key
+          raise "Server has key name '#{server.key_name}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
+        end
+        key
+      elsif machine_spec.location['key_name']
+        key = get_private_key(machine_spec.location['key_name'])
+        if !key
+          raise "Server was created with key name '#{machine_spec.location['key_name']}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
+        end
+        key
+      elsif machine_options[:bootstrap_options][:key_path]
+        IO.read(machine_options[:bootstrap_options][:key_path])
+      elsif machine_options[:bootstrap_options][:key_name]
+        get_private_key(machine_options[:bootstrap_options][:key_name])
+      else
+        # TODO make a way to suggest other keys to try ...
+        raise "No key found to connect to #{machine_spec.name} (#{machine_spec.location.inspect})!"
       end
     end
 
     def ssh_options_for(machine_spec, machine_options, server)
       result = {
-# TODO create a user known hosts file
-#          :user_known_hosts_file => vagrant_ssh_config['UserKnownHostsFile'],
-#          :paranoid => true,
         :auth_methods => [ 'publickey' ],
-        :keys_only => true,
         :host_key_alias => "#{server.id}.#{provider}"
       }.merge(machine_options[:ssh_options] || {})
-      if machine_spec.location['key_name']
-        key = get_private_key(machine_spec.location['key_name'])
-        if !key
-          raise "Server was created with key name '#{machine_spec.location['key_name']}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
-        end
-        result[:key_data] = [ key ]
-      elsif machine_options[:bootstrap_options][:key_path]
-        result[:key_data] = [ IO.read(machine_options[:bootstrap_options][:key_path]) ]
-      elsif machine_options[:bootstrap_options][:key_name]
-        result[:key_data] = [ get_private_key(machine_options[:bootstrap_options][:key_name]) ]
-      else
-        # TODO make a way to suggest other keys to try ...
-        raise "No key found to connect to #{machine_spec.name} (#{machine_spec.location.inspect})!"
+      # Grab key_data from the user's config if not specified
+      unless result.has_key?(:key_data)
+        result[:keys_only] = true
+        result[:key_data] = [ private_key_for(machine_spec, machine_options, server) ]
       end
       result
     end
@@ -580,11 +655,15 @@ module ChefMetalFog
       'root'
     end
 
+    def create_winrm_transport(machine_spec, machine_options, server)
+      fail "This provider doesn't know how to do that."
+    end
+
     def create_ssh_transport(machine_spec, machine_options, server)
       ssh_options = ssh_options_for(machine_spec, machine_options, server)
       username = machine_spec.location['ssh_username'] || default_ssh_username
       if machine_options.has_key?(:ssh_username) && machine_options[:ssh_username] != machine_spec.location['ssh_username']
-        Chef::Log.warn("Server #{machine_spec.name} was created with SSH username #{machine_spec.location['ssh_username']} and machine_options specifies username #{machine_options[:ssh_username]}.  Using #{machine_spec.location['ssh_username']}.  Please edit the node and change the metal.location.ssh_username attribute if you want to change it.")
+        Chef::Log.warn("Server #{machine_spec.name} was created with SSH username #{machine_spec.location['ssh_username']} and machine_options specifies username #{machine_options[:ssh_username]}.  Using #{machine_spec.location['ssh_username']}.  Please edit the node and change the chef_provisioning.location.ssh_username attribute if you want to change it.")
       end
       options = {}
       if machine_spec.location[:sudo] || (!machine_spec.location.has_key?(:sudo) && username != 'root')
@@ -595,7 +674,7 @@ module ChefMetalFog
       if machine_spec.location['use_private_ip_for_ssh']
         remote_host = server.private_ip_address
       elsif !server.public_ip_address
-        Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
+        Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
         remote_host = server.private_ip_address
       elsif server.public_ip_address
         remote_host = server.public_ip_address
@@ -607,11 +686,13 @@ module ChefMetalFog
       options[:ssh_pty_enable] = true
       options[:ssh_gateway] = machine_spec.location['ssh_gateway'] if machine_spec.location.has_key?('ssh_gateway')
 
-      ChefMetal::Transport::SSH.new(remote_host, username, ssh_options, options, config)
+      Transport::SSH.new(remote_host, username, ssh_options, options, config)
     end
 
     def self.compute_options_for(provider, id, config)
       raise "unsupported fog provider #{provider}"
     end
   end
+end
+end
 end

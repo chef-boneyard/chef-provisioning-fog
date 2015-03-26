@@ -1,8 +1,10 @@
-module ChefMetalFog
+class Chef
+module Provisioning
+module FogDriver
   module Providers
-    class CloudStack < ChefMetalFog::FogDriver
+    class CloudStack < FogDriver::Driver
 
-      ChefMetalFog::FogDriver.register_provider_class('CloudStack', ChefMetalFog::Providers::CloudStack)
+      Driver.register_provider_class('CloudStack', FogDriver::Providers::CloudStack)
 
       def creator
         ''
@@ -37,4 +39,6 @@ module ChefMetalFog
 
     end
   end
+end
+end
 end
