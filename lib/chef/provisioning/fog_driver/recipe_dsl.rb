@@ -23,6 +23,10 @@ class Chef
         with_fog_driver('Rackspace', driver_options, &block)
       end
 
+      def with_fog_vcair_driver(driver_options = nil, &block)
+        with_fog_driver('Vcair', driver_options, &block)
+      end
+
     end
   end
 end
