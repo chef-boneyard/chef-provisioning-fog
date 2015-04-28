@@ -27,6 +27,10 @@ module FogDriver
         bootstrap_options
       end
 
+      def find_floating_ips(server)
+        []
+      end
+
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
         new_compute_options[:provider] = provider

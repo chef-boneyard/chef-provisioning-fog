@@ -469,18 +469,13 @@ module FogDriver
     # Find all attached floating IPs from all networks
     def find_floating_ips(server)
       floating_ips = []
-      begin
-	      server.addresses.each do |network, addrs|
-	        addrs.each do | full_addr |
-	          if full_addr['OS-EXT-IPS:type'] == 'floating'
-	            floating_ips << full_addr['addr']
-	          end
-	        end
-	      end
-      rescue NoMethodError
-		  # Some fog providers (e.g. Joyent) do not have the 'addresses' method
+      server.addresses.each do |network, addrs|
+        addrs.each do | full_addr |
+          if full_addr['OS-EXT-IPS:type'] == 'floating'
+            floating_ips << full_addr['addr']
+          end
+        end
       end
-
       floating_ips
     end
 
