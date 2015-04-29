@@ -20,6 +20,14 @@ class Chef
             end
           end
 
+          def servers_for(machine_specs)
+            result = {}
+            machine_specs.each do |machine_spec|
+              result[machine_spec] = server_for(machine_spec)
+            end
+            result
+          end
+
           def bootstrap_options_for(action_handler, machine_spec, machine_options)
             bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
             bootstrap_options[:image_name] = 'debian-7-wheezy-v20150325'
