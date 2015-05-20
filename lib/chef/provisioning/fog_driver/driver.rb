@@ -19,6 +19,7 @@ require 'fog/compute'
 require 'socket'
 require 'etc'
 require 'time'
+require 'retryable'
 require 'cheffish/merged_config'
 require 'chef/provisioning/fog_driver/recipe_dsl'
 
@@ -403,7 +404,9 @@ module FogDriver
       if !server.ready?
         if action_handler.should_perform_actions
           action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be ready ..."
-          server.wait_for(remaining_wait_time(machine_spec, machine_options)) { ready? }
+          Retryable.retryable(:tries => 12, :sleep => 5, :on => [Fog::Compute::AWS::Error]) do
+            server.wait_for(remaining_wait_time(machine_spec, machine_options)) { ready? }
+          end
           action_handler.report_progress "#{machine_spec.name} is now ready"
         end
       end
@@ -469,10 +472,12 @@ module FogDriver
     # Find all attached floating IPs from all networks
     def find_floating_ips(server)
       floating_ips = []
-      server.addresses.each do |network, addrs|
-        addrs.each do | full_addr |
-          if full_addr['OS-EXT-IPS:type'] == 'floating'
-            floating_ips << full_addr['addr']
+      Retryable.retryable(:tries => 12, :sleep => 5, :on => [Fog::Compute::AWS::Error]) do
+        server.addresses.each do |network, addrs|
+          addrs.each do | full_addr |
+            if full_addr['OS-EXT-IPS:type'] == 'floating'
+              floating_ips << full_addr['addr']
+            end
           end
         end
       end
