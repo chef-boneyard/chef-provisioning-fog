@@ -420,12 +420,14 @@ module FogDriver
       transport = transport_for(machine_spec, machine_options, server, action_handler)
       if !transport.available?
         if action_handler.should_perform_actions
-          action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running) ..."
+          Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+            action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running), API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
 
-          _self = self
+            _self = self
 
-          server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
-            transport.available?
+            server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
+              transport.available?
+            end
           end
           action_handler.report_progress "#{machine_spec.name} is now connectable"
         end
