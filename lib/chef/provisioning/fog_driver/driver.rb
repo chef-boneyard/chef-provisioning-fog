@@ -19,6 +19,7 @@ require 'fog/compute'
 require 'socket'
 require 'etc'
 require 'time'
+require 'retryable'
 require 'cheffish/merged_config'
 require 'chef/provisioning/fog_driver/recipe_dsl'
 
@@ -101,6 +102,9 @@ module FogDriver
       :start_timeout => 180,
       :ssh_timeout => 20
     }
+
+    RETRYABLE_ERRORS = [Fog::Compute::AWS::Error]
+    RETRYABLE_OPTIONS = { tries: 12, sleep: 5, on: RETRYABLE_ERRORS }
 
     class << self
       alias :__new__ :new
@@ -402,8 +406,10 @@ module FogDriver
     def wait_until_ready(action_handler, machine_spec, machine_options, server)
       if !server.ready?
         if action_handler.should_perform_actions
-          action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be ready ..."
-          server.wait_for(remaining_wait_time(machine_spec, machine_options)) { ready? }
+          Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+            action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be ready, API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
+            server.wait_for(remaining_wait_time(machine_spec, machine_options)) { ready? }
+          end
           action_handler.report_progress "#{machine_spec.name} is now ready"
         end
       end
@@ -414,12 +420,14 @@ module FogDriver
       transport = transport_for(machine_spec, machine_options, server, action_handler)
       if !transport.available?
         if action_handler.should_perform_actions
-          action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running) ..."
+          Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+            action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running), API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
 
-          _self = self
+            _self = self
 
-          server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
-            transport.available?
+            server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
+              transport.available?
+            end
           end
           action_handler.report_progress "#{machine_spec.name} is now connectable"
         end
@@ -429,7 +437,7 @@ module FogDriver
     def converge_floating_ips(action_handler, machine_spec, machine_options, server)
       pool = option_for(machine_options, :floating_ip_pool)
       floating_ip = option_for(machine_options, :floating_ip)
-      attached_floating_ips = find_floating_ips(server)
+      attached_floating_ips = find_floating_ips(server, action_handler)
       if pool
 
         Chef::Log.debug "Attaching IP from pool #{pool}"
@@ -467,12 +475,15 @@ module FogDriver
     end
 
     # Find all attached floating IPs from all networks
-    def find_floating_ips(server)
+    def find_floating_ips(server, action_handler)
       floating_ips = []
-      server.addresses.each do |network, addrs|
-        addrs.each do | full_addr |
-          if full_addr['OS-EXT-IPS:type'] == 'floating'
-            floating_ips << full_addr['addr']
+      Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+        action_handler.report_progress "Querying for floating IPs attached to server #{server.id}, API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
+        server.addresses.each do |network, addrs|
+          addrs.each do | full_addr |
+            if full_addr['OS-EXT-IPS:type'] == 'floating'
+              floating_ips << full_addr['addr']
+            end
           end
         end
       end
