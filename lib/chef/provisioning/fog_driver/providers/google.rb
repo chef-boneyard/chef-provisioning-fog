@@ -30,10 +30,10 @@ class Chef
 
           def bootstrap_options_for(action_handler, machine_spec, machine_options)
             bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
-            bootstrap_options[:image_name] = 'debian-7-wheezy-v20150325'
-            bootstrap_options[:machine_type] = 'n1-standard-1'
-            bootstrap_options[:zone_name] = 'europe-west1-b'
-            bootstrap_options[:name] = machine_spec.name
+            bootstrap_options[:image_name] ||= 'debian-7-wheezy-v20150325'
+            bootstrap_options[:machine_type] ||= 'n1-standard-1'
+            bootstrap_options[:zone_name] ||= 'europe-west1-b'
+            bootstrap_options[:name] ||= machine_spec.name
 
             if bootstrap_options[:disks].nil?
               # create the persistent boot disk
