@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.13.1 (3/4/2015
+## 0.13.2 (4/2/2015)
+
+- Change dep to work with 1.0
+
+## 0.13.1 (3/4/2015)
 
 - Fixed floating assignment for Openstack (@tyler-ball)
 

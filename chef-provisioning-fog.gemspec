@@ -14,8 +14,9 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'chef'
   s.add_dependency 'cheffish', '>= 0.4'
-  s.add_dependency 'chef-provisioning', '~> 0.15'
+  s.add_dependency 'chef-provisioning', '~> 1.0'
   s.add_dependency 'fog'
+  s.add_dependency 'retryable'
 
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rake'
