@@ -1,5 +1,4 @@
 # fog:OpenStack:https://identifyhost:portNumber/v2.0
-require 'byebug'
 class Chef
 module Provisioning
 module FogDriver
@@ -37,57 +36,50 @@ module FogDriver
 
       # Image methods
       def allocate_image(action_handler, image_spec, image_options, machine_spec, machine_options)
-        byebug
-        actual_image = image_for(image_spec)
-        aws_tags = image_options.delete(:aws_tags) || {}
-        if actual_image.nil? || !actual_image.exists? || actual_image.state == :failed
-          action_handler.perform_action "Create image #{image_spec.name} from machine #{machine_spec.name} with options #{image_options.inspect}" do
-            image_options[:name] ||= image_spec.name
-            image_options[:instance_id] ||= machine_spec.reference['instance_id']
-            image_options[:description] ||= "Image #{image_spec.name} created from machine #{machine_spec.name}"
-            Chef::Log.debug "AWS Image options: #{image_options.inspect}"
-            actual_image = ec2.images.create(image_options.to_hash)
-            image_spec.reference = {
-              'driver_version' => Chef::Provisioning::AWSDriver::VERSION,
-              'image_id' => actual_image.id,
-              'allocated_at' => Time.now.to_i
-            }
-            image_spec.driver_url = driver_url
-          end
+        image = image_for(image_spec)
+        if image
+          raise "The image already exists, why are you asking me to create it?  I can't do that, Dave."
         end
-        aws_tags['From-Instance'] = image_options[:instance_id] if image_options[:instance_id]
-        converge_tags(actual_image, aws_tags, action_handler)
+        action_handler.perform_action "Create image #{image_spec.name} from machine #{machine_spec.name} with options #{image_options.inspect}" do
+          response = compute.create_image(
+            machine_spec.location['server_id'], image_spec.name,
+            {
+              description: "The Image named '#{image_spec.name}"
+            })
+
+          image_spec.location = {
+            driver_url: driver_url,
+            driver_version: FogDriver::VERSION,
+            image_id: response.body['image']['id'],
+            creator: creator,
+            allocated_it: Time.new.to_i
+          }
+        end
       end
 
       def ready_image(action_handler, image_spec, image_options)
-        byebug
         actual_image = image_for(image_spec)
-        if actual_image.nil? || !actual_image.exists?
+        if actual_image.nil?
           raise 'Cannot ready an image that does not exist'
         else
-          if actual_image.state != :available
-            action_handler.report_progress 'Waiting for image to be ready ...'
+          if actual_image.status != 'ACTIVE'
+            action_handler.report_progress 'Waiting for image to be active ...'
             wait_until_ready_image(action_handler, image_spec, actual_image)
           else
-            action_handler.report_progress "Image #{image_spec.name} is ready!"
+            action_handler.report_progress "Image #{image_spec.name} is active!"
           end
         end
       end
 
       def destroy_image(action_handler, image_spec, image_options)
-        byebug
-        # TODO the driver should automatically be set by `inline_resource`
-        d = self
-        Provisioning.inline_resource(action_handler) do
-          aws_image image_spec.name do
-            action :destroy
-            driver d
-          end
+        image = image_for(image_spec)
+        unless image.status == "DELETED"
+          image.destroy
         end
       end
 
       def wait_until_ready_image(action_handler, image_spec, image=nil)
-        wait_until_image(action_handler, image_spec, image) { image.state == :available }
+        wait_until_image(action_handler, image_spec, image) { image.status == 'ACTIVE' }
       end
 
       def wait_until_image(action_handler, image_spec, image=nil, &block)
@@ -96,10 +88,11 @@ module FogDriver
         sleep_time = 10
         max_wait_time = 300
         if !yield(image)
-          action_handler.report_progress "waiting for #{image_spec.name} (#{image.id} on #{driver_url}) to be ready ..."
+          action_handler.report_progress "waiting for image #{image_spec.name} (#{image.id} on #{driver_url}) to be active ..."
           while time_elapsed < max_wait_time && !yield(image)
-           action_handler.report_progress "been waiting #{time_elapsed}/#{max_wait_time} -- sleeping #{sleep_time} seconds for #{image_spec.name} (#{image.id} on #{driver_url}) to be ready ..."
+           action_handler.report_progress "been waiting #{time_elapsed}/#{max_wait_time} -- sleeping #{sleep_time} seconds for image #{image_spec.name} (#{image.id} on #{driver_url}) to be active instead of image.status..."
            sleep(sleep_time)
+           image.reload
            time_elapsed += sleep_time
           end
           unless yield(image)
@@ -110,8 +103,11 @@ module FogDriver
       end
 
       def image_for(image_spec)
-        byebug
-        Chef::Resource::AwsImage.get_aws_object(image_spec.name, driver: self, managed_entry_store: image_spec.managed_entry_store, required: false)
+        if image_spec.location
+          compute.images.get(image_spec.location[:image_id.to_s])
+        else
+          nil
+        end
       end
 
     end
