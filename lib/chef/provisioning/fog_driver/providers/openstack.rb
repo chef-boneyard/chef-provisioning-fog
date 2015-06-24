@@ -1,4 +1,5 @@
 # fog:OpenStack:https://identifyhost:portNumber/v2.0
+require 'byebug'
 class Chef
 module Provisioning
 module FogDriver
@@ -90,7 +91,7 @@ module FogDriver
         if !yield(image)
           action_handler.report_progress "waiting for image #{image_spec.name} (#{image.id} on #{driver_url}) to be active ..."
           while time_elapsed < max_wait_time && !yield(image)
-           action_handler.report_progress "been waiting #{time_elapsed}/#{max_wait_time} -- sleeping #{sleep_time} seconds for image #{image_spec.name} (#{image.id} on #{driver_url}) to be active instead of image.status..."
+           action_handler.report_progress "been waiting #{time_elapsed}/#{max_wait_time} -- sleeping #{sleep_time} seconds for image #{image_spec.name} (#{image.id} on #{driver_url}) to be ACTIVE instead of #{image.status}..."
            sleep(sleep_time)
            image.reload
            time_elapsed += sleep_time
@@ -104,7 +105,7 @@ module FogDriver
 
       def image_for(image_spec)
         if image_spec.location
-          compute.images.get(image_spec.location[:image_id.to_s])
+          compute.images.get(image_spec.location[:image_id]) || compute.images.get(image_spec.location['image_id'])
         else
           nil
         end
