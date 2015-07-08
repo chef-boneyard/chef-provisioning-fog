@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.2 (4/2/2015)
+
+- Change dep to work with 1.0
+
+## 0.13.1 (3/4/2015)
+
+- Fixed floating assignment for Openstack (@tyler-ball)
+
+## 0.13 (2/25/2015)
+
+- Support for ~/.aws/credentials (@miguelcnf)
+- Crash fixes for mixed machine options
+
 ## 0.12 (1/27/2015)
 
 - Allow user to pass private key data in machine_options[:ssh_options][:key_data] (@squaresurf)

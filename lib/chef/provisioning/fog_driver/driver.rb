@@ -19,6 +19,7 @@ require 'fog/compute'
 require 'socket'
 require 'etc'
 require 'time'
+require 'retryable'
 require 'cheffish/merged_config'
 require 'chef/provisioning/fog_driver/recipe_dsl'
 
@@ -53,8 +54,8 @@ module FogDriver
   # from_provider and compute_options_for, and add the new provider in the case
   # statements so that URLs for your fog provider can be generated.  If your
   # cloud provider has environment variables or standard config files (like
-  # ~/.aws/config), you can read those and merge that information in the
-  # compute_options_for function.
+  # ~/.aws/credentials or ~/.aws/config), you can read those and merge that information
+  # in the compute_options_for function.
   #
   # ## Location format
   #
@@ -78,7 +79,7 @@ module FogDriver
   # - ssh_timeout: the time to wait for ssh to be available if the instance is detected as up (defaults to 20)
   # - ssh_username: username to use for ssh
   # - sudo: true to prefix all commands with "sudo"
-  # - use_private_ip_for_ssh: hint to use private ip when available
+  # - use_private_ip_for_ssh: hint to use private floating_ip when available
   # - convergence_options: hash of options for the convergence strategy
   #   - chef_client_timeout: the time to wait for chef-client to finish
   #   - chef_server - the chef server to point convergence at
@@ -92,6 +93,7 @@ module FogDriver
   #   }
   #
   class Driver < Provisioning::Driver
+    @@ip_pool_lock = Mutex.new
 
     include Chef::Mixin::ShellOut
 
@@ -100,6 +102,9 @@ module FogDriver
       :start_timeout => 180,
       :ssh_timeout => 20
     }
+
+    RETRYABLE_ERRORS = [Fog::Compute::AWS::Error]
+    RETRYABLE_OPTIONS = { tries: 12, sleep: 5, on: RETRYABLE_ERRORS }
 
     class << self
       alias :__new__ :new
@@ -155,7 +160,7 @@ module FogDriver
     # config - configuration.  :driver_options, :keys, :key_paths and :log_level are used.
     #   driver_options is a hash with these possible options:
     #   - compute_options: the hash of options to Fog::Compute.new.
-    #   - aws_config_file: aws config file (default: ~/.aws/config)
+    #   - aws_config_file: aws config file (defaults: ~/.aws/credentials, ~/.aws/config)
     #   - aws_csv_file: aws csv credentials file downloaded from EC2 interface
     #   - aws_profile: profile name to use for credentials
     #   - aws_credentials: AWSCredentials object. (will be created for you by default)
@@ -199,12 +204,13 @@ module FogDriver
         raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
       end
 
-      # Attach floating IPs if necessary
-      attach_floating_ips(action_handler, machine_spec, machine_options, server)
-
       # Start the server if needed, and wait for it to start
       start_server(action_handler, machine_spec, server)
       wait_until_ready(action_handler, machine_spec, machine_options, server)
+
+      # Attach/detach floating IPs if necessary
+      converge_floating_ips(action_handler, machine_spec, machine_options, server)
+
       begin
         wait_for_transport(action_handler, machine_spec, machine_options, server)
       rescue Fog::Errors::TimeoutError
@@ -400,8 +406,10 @@ module FogDriver
     def wait_until_ready(action_handler, machine_spec, machine_options, server)
       if !server.ready?
         if action_handler.should_perform_actions
-          action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be ready ..."
-          server.wait_for(remaining_wait_time(machine_spec, machine_options)) { ready? }
+          Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+            action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be ready, API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
+            server.wait_for(remaining_wait_time(machine_spec, machine_options)) { ready? }
+          end
           action_handler.report_progress "#{machine_spec.name} is now ready"
         end
       end
@@ -412,58 +420,99 @@ module FogDriver
       transport = transport_for(machine_spec, machine_options, server, action_handler)
       if !transport.available?
         if action_handler.should_perform_actions
-          action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running) ..."
+          Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+            action_handler.report_progress "waiting for #{machine_spec.name} (#{server.id} on #{driver_url}) to be connectable (transport up and running), API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
 
-          _self = self
+            _self = self
 
-          server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
-            transport.available?
+            server.wait_for(remaining_wait_time(machine_spec, machine_options)) do
+              transport.available?
+            end
           end
           action_handler.report_progress "#{machine_spec.name} is now connectable"
         end
       end
     end
 
-    def attach_floating_ips(action_handler, machine_spec, machine_options, server)
-      # TODO this is not particularly idempotent. OK, it is not idempotent AT ALL.  Fix.
-      if option_for(machine_options, :floating_ip_pool)
-        Chef::Log.info 'Attaching IP from pool'
-        action_handler.perform_action "attach floating IP from #{option_for(machine_options, :floating_ip_pool)} pool" do
-          attach_ip_from_pool(server, option_for(machine_options, :floating_ip_pool))
+    def converge_floating_ips(action_handler, machine_spec, machine_options, server)
+      pool = option_for(machine_options, :floating_ip_pool)
+      floating_ip = option_for(machine_options, :floating_ip)
+      attached_floating_ips = find_floating_ips(server, action_handler)
+      if pool
+
+        Chef::Log.debug "Attaching IP from pool #{pool}"
+        if attached_floating_ips.size > 0
+          Chef::Log.info "Server already assigned attached_floating_ips `#{attached_floating_ips}`"
+        elsif
+          action_handler.perform_action "Attaching floating IP from pool `#{pool}`" do
+            attach_ip_from_pool(server, pool)
+          end
         end
-      elsif option_for(machine_options, :floating_ip)
-        Chef::Log.info 'Attaching given IP'
-        action_handler.perform_action "attach floating IP #{option_for(machine_options, :floating_ip)}" do
-          attach_ip(server, option_for(machine_options, :allocation_id), option_for(machine_options, :floating_ip))
+
+      elsif floating_ip
+
+        Chef::Log.debug "Attaching given IP #{floating_ip}"
+        if attached_floating_ips.include? floating_ip
+          Chef::Log.info "Address <#{floating_ip}> already allocated"
+        else
+          action_handler.perform_action "Attaching floating IP #{floating_ip}" do
+            attach_ip(server, floating_ip)
+          end
+        end
+
+      elsif !attached_floating_ips.empty?
+
+        # If nothing is assigned, lets remove any floating IPs
+        Chef::Log.debug 'Missing :floating_ip_pool or :floating_ip, removing attached floating IPs'
+        action_handler.perform_action "Removing floating IPs #{attached_floating_ips}" do
+          attached_floating_ips.each do |ip|
+            server.disassociate_address(ip)
+          end
+          server.reload
+        end
+
+      end
+    end
+
+    # Find all attached floating IPs from all networks
+    def find_floating_ips(server, action_handler)
+      floating_ips = []
+      Retryable.retryable(RETRYABLE_OPTIONS) do |retries,exception|
+        action_handler.report_progress "Querying for floating IPs attached to server #{server.id}, API attempt #{retries+1}/#{RETRYABLE_OPTIONS[:tries]} ..."
+        server.addresses.each do |network, addrs|
+          addrs.each do | full_addr |
+            if full_addr['OS-EXT-IPS:type'] == 'floating'
+              floating_ips << full_addr['addr']
+            end
+          end
         end
       end
+      floating_ips
     end
 
     # Attach IP to machine from IP pool
     # Code taken from kitchen-openstack driver
-    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb#L196-L207
+    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb
     def attach_ip_from_pool(server, pool)
-      @ip_pool_lock ||= Mutex.new
-      @ip_pool_lock.synchronize do
+      @@ip_pool_lock.synchronize do
         Chef::Log.info "Attaching floating IP from <#{pool}> pool"
-        free_addrs = compute.addresses.collect do |i|
-          i.ip if i.fixed_ip.nil? and i.instance_id.nil? and i.pool == pool
+        free_addrs = compute.addresses.map do |i|
+          i.ip if i.fixed_ip.nil? && i.instance_id.nil? && i.pool == pool
         end.compact
         if free_addrs.empty?
-          raise ActionFailed, "No available IPs in pool <#{pool}>"
+          raise RuntimeError, "No available IPs in pool <#{pool}>"
         end
         attach_ip(server, free_addrs[0])
       end
     end
 
-    # Attach given IP to machine
+    # Attach given IP to machine, assign it as public
     # Code taken from kitchen-openstack driver
-    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb#L209-L213
-    def attach_ip(server, allocation_id, ip)
+    #    https://github.com/test-kitchen/kitchen-openstack/blob/master/lib/kitchen/driver/openstack.rb
+    def attach_ip(server, ip)
       Chef::Log.info "Attaching floating IP <#{ip}>"
-      compute.associate_address(:instance_id => server.id,
-                                :allocation_id => allocation_id,
-                                :public_ip => ip)
+      server.associate_address ip
+      server.reload
     end
 
     def symbolize_keys(options)
@@ -643,7 +692,7 @@ module FogDriver
       elsif machine_spec.location['use_private_ip_for_ssh']
         remote_host = server.private_ip_address
       elsif !server.public_ip_address
-        Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
+        Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
         remote_host = server.private_ip_address
       elsif server.public_ip_address
         remote_host = server.public_ip_address

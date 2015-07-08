@@ -167,9 +167,18 @@ module FogDriver
       end
 
       def convergence_strategy_for(machine_spec, machine_options)
-        machine_options[:convergence_options] ||= {}
-        machine_options[:convergence_options][:ohai_hints] = { 'ec2' => ''}
+        machine_options = Cheffish::MergedConfig.new(machine_options, {
+          :convergence_options => {:ohai_hints => {'ec2' => ''}}
+        })
         super(machine_spec, machine_options)
+      end
+
+      # Attach given IP to machine
+      def attach_ip(server, ip)
+        Chef::Log.info "Attaching floating IP <#{ip}>"
+        compute.associate_address(:instance_id => server.id,
+                                  :allocation_id =>  option_for(machine_options, :allocation_id),
+                                  :public_ip => ip)
       end
 
       def self.get_aws_profile(driver_options, aws_account_id)
@@ -227,7 +236,7 @@ module FogDriver
           aws_profile = find_aws_profile_for_account_id(aws_credentials, aws_account_id, default_iam_endpoint)
         end
 
-        fail 'No AWS profile specified! Are you missing something in the Chef config or ~/.aws/config?' unless aws_profile
+        fail 'No AWS profile specified! Are you missing something in the Chef or AWS config?' unless aws_profile
 
         aws_profile[:ec2_endpoint] ||= default_ec2_endpoint
         aws_profile[:iam_endpoint] ||= default_iam_endpoint
@@ -256,7 +265,7 @@ module FogDriver
         if aws_profile
           Chef::Log.info("Discovered AWS profile #{aws_profile[:name]} pointing at account #{aws_account_id}.  Using ...")
         else
-          raise "No AWS profile leads to account ##{aws_account_id}.  Do you need to add profiles to ~/.aws/config?"
+          raise "No AWS profile leads to account #{aws_account_id}.  Do you need to add profiles to the AWS config?"
         end
         aws_profile
       end
@@ -313,9 +322,9 @@ module FogDriver
         else
           aws_credentials = Credentials.new
           if driver_options[:aws_config_file]
-            aws_credentials.load_ini(driver_options.delete(:aws_config_file))
+            aws_credentials.load_ini(driver_options[:aws_config_file])
           elsif driver_options[:aws_csv_file]
-            aws_credentials.load_csv(driver_options.delete(:aws_csv_file))
+            aws_credentials.load_csv(driver_options[:aws_csv_file])
           else
             aws_credentials.load_default
           end
