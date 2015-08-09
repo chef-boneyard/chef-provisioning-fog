@@ -93,12 +93,12 @@ class Chef
             if server.status == 'stopping'
               action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
               # Vcair
-              # NOTE: Vcair fog does not get server.status via http every time
+              # NOTE: Vcair FOG does not get server.status via http every time
               server.wait_for { server.reload ; server.status != 'stopping' }
               action_handler.report_progress "#{machine_spec.name} is now stopped"
             end
 
-            # NOTE: Vcair fog does not get server.status via http every time
+            # NOTE: Vcair FOG does not get server.status via http every time
             server.reload
 
             if server.status == 'off' or server.status != 'on'
@@ -275,7 +275,7 @@ class Chef
               c.reset_password_required = true
             end
 
-            # TODO: Add support for admin_auto_logon to fog
+            # TODO: Add support for admin_auto_logon to FOG
             # c.admin_auto_logon_count = 100
             # c.admin_auto_logon_enabled = true
 

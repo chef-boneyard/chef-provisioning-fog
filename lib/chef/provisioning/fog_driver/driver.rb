@@ -26,12 +26,12 @@ require 'chef/provisioning/fog_driver/recipe_dsl'
 class Chef
 module Provisioning
 module FogDriver
-  # Provisions cloud machines with the Fog driver.
+  # Provisions cloud machines with the FOG driver.
   #
-  # ## Fog Driver URLs
+  # ## FOG Driver URLs
   #
   # All Chef Provisioning drivers use URLs to uniquely identify a driver's "bucket" of machines.
-  # Fog URLs are of the form fog:<provider>:<identifier:> - see individual providers
+  # FOG URLs are of the form fog:<provider>:<identifier:> - see individual providers
   # for sample URLs.
   #
   # Identifier is generally something uniquely identifying the account.  If multiple
@@ -45,14 +45,14 @@ module FogDriver
   # is *not* enough for this--if you varied the region, you would no longer see
   # your server in the list.  Thus, AWS uses both the account ID and the region.
   #
-  # ## Supporting a new Fog provider
+  # ## Supporting a new FOG provider
   #
-  # The Fog driver does not immediately support all Fog providers out of the box.
+  # The FOG driver does not immediately support all FOG providers out of the box.
   # Some minor work needs to be done to plug them into Chef.
   #
-  # To add a new supported Fog provider, pick an appropriate identifier, go to
+  # To add a new supported FOG provider, pick an appropriate identifier, go to
   # from_provider and compute_options_for, and add the new provider in the case
-  # statements so that URLs for your fog provider can be generated.  If your
+  # statements so that URLs for your FOG provider can be generated.  If your
   # cloud provider has environment variables or standard config files (like
   # ~/.aws/credentials or ~/.aws/config), you can read those and merge that information
   # in the compute_options_for function.
@@ -60,7 +60,7 @@ module FogDriver
   # ## Location format
   #
   # All machines have a location hash to find them.  These are the keys used by
-  # the fog provisioner:
+  # the FOG provisioner:
   #
   # - driver_url: fog:<driver>:<unique_account_info>
   # - server_id: the ID of the server so it can be found again
@@ -153,7 +153,7 @@ module FogDriver
       Provisioning.driver_for_url(driver_url, config)
     end
 
-    # Create a new fog driver.
+    # Create a new FOG driver.
     #
     # ## Parameters
     # driver_url - URL of driver.  "fog:<provider>:<provider_id>"
@@ -284,7 +284,7 @@ module FogDriver
     end
 
     def creator
-      raise "unsupported fog provider #{provider} (please implement #creator)"
+      raise "unsupported FOG provider #{provider} (please implement #creator)"
     end
 
     def create_servers(action_handler, specs_and_options, parallelizer, &block)
@@ -701,7 +701,7 @@ module FogDriver
     end
 
     def self.compute_options_for(provider, id, config)
-      raise "unsupported fog provider #{provider}"
+      raise "unsupported FOG provider #{provider}"
     end
   end
 end

@@ -30,7 +30,7 @@ module FogDriver
       # Create a WinRM transport for an AWS instance
       # @param [Hash] machine_spec Machine-spec hash
       # @param [Hash] machine_options Machine options (from the recipe)
-      # @param [Fog::Compute::Server] server A Fog mapping to the AWS instance
+      # @param [Fog::Compute::Server] server A FOG mapping to the AWS instance
       # @return [ChefMetal::Transport::WinRM] A WinRM Transport object to talk to the server
       def create_winrm_transport(machine_spec, machine_options, server)
         remote_host = if machine_spec.location['use_private_ip_for_ssh']
@@ -291,7 +291,7 @@ module FogDriver
 
           iam = Fog::AWS::IAM.new(options)
           arn = begin
-                  # TODO it would be nice if Fog let you do this normally ...
+                  # TODO it would be nice if FOG let you do this normally ...
                   iam.send(:request, {
                     'Action'    => 'GetUser',
                     :parser     => Fog::Parsers::AWS::IAM::GetUser.new
@@ -384,7 +384,7 @@ module FogDriver
       end
 
       def create_many_servers(num_servers, bootstrap_options, parallelizer)
-        # Create all the servers in one request if we have a version of fog that can do that
+        # Create all the servers in one request if we have a version of FOG that can do that
         if compute.servers.respond_to?(:create_many)
           servers = compute.servers.create_many(num_servers, num_servers, bootstrap_options)
           if block_given?
