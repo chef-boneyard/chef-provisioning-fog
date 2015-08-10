@@ -52,7 +52,7 @@ module FogDriver
   #
   # To add a new supported Fog provider, pick an appropriate identifier, go to
   # from_provider and compute_options_for, and add the new provider in the case
-  # statements so that URLs for your fog provider can be generated.  If your
+  # statements so that URLs for your Fog provider can be generated.  If your
   # cloud provider has environment variables or standard config files (like
   # ~/.aws/credentials or ~/.aws/config), you can read those and merge that information
   # in the compute_options_for function.
@@ -60,7 +60,7 @@ module FogDriver
   # ## Location format
   #
   # All machines have a location hash to find them.  These are the keys used by
-  # the fog provisioner:
+  # the Fog provisioner:
   #
   # - driver_url: fog:<driver>:<unique_account_info>
   # - server_id: the ID of the server so it can be found again
@@ -153,7 +153,7 @@ module FogDriver
       Provisioning.driver_for_url(driver_url, config)
     end
 
-    # Create a new fog driver.
+    # Create a new Fog driver.
     #
     # ## Parameters
     # driver_url - URL of driver.  "fog:<provider>:<provider_id>"
@@ -284,7 +284,7 @@ module FogDriver
     end
 
     def creator
-      raise "unsupported fog provider #{provider} (please implement #creator)"
+      raise "unsupported Fog provider #{provider} (please implement #creator)"
     end
 
     def create_servers(action_handler, specs_and_options, parallelizer, &block)
@@ -701,7 +701,7 @@ module FogDriver
     end
 
     def self.compute_options_for(provider, id, config)
-      raise "unsupported fog provider #{provider}"
+      raise "unsupported Fog provider #{provider}"
     end
   end
 end

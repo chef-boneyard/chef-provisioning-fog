@@ -8,7 +8,7 @@ describe Chef::Provisioning::FogDriver::Providers::Rackspace do
     expect(subject).to be_an_instance_of Chef::Provisioning::FogDriver::Providers::Rackspace
   end
 
-  it "has a fog backend" do
+  it "has a Fog backend" do
     pending unless Fog.mock?
     expect(subject.compute).to be_an_instance_of Fog::Compute::RackspaceV2::Mock
   end

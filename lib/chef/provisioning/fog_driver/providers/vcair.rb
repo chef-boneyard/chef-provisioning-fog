@@ -92,13 +92,13 @@ class Chef
             # If it is stopping, wait for it to get out of "stopping" transition state before starting
             if server.status == 'stopping'
               action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
-              # Vcair
-              # NOTE: Vcair fog does not get server.status via http every time
+              # vCloud Air
+              # NOTE: vCloud Air Fog does not get server.status via http every time
               server.wait_for { server.reload ; server.status != 'stopping' }
               action_handler.report_progress "#{machine_spec.name} is now stopped"
             end
 
-            # NOTE: Vcair fog does not get server.status via http every time
+            # NOTE: vCloud Air Fog does not get server.status via http every time
             server.reload
 
             if server.status == 'off' or server.status != 'on'
@@ -149,8 +149,8 @@ class Chef
             end
 
             remote_host = nil
-            # Vcair networking is funky
-            #if machine_options[:use_private_ip_for_ssh] # Vcair probably needs private ip for now
+            # vCloud Air networking is funky
+            #if machine_options[:use_private_ip_for_ssh] # vCloud Air probably needs private ip for now
             if server.ip_address
               remote_host = server.ip_address
             else
@@ -175,7 +175,7 @@ class Chef
             wait_until_ready(action_handler, machine_spec, machine_options, server)
 
             # Attach/detach floating IPs if necessary
-            # Vcair is funky for network.  vm has to be powered off or you get this error:
+            # vCloud Air is funky for network.  VM has to be powered off or you get this error:
             #    Primary NIC cannot be changed when the VM is not in Powered-off state
             # See code in update_network()
             #DISABLED: converge_floating_ips(action_handler, machine_spec, machine_options, server)
@@ -275,7 +275,7 @@ class Chef
               c.reset_password_required = true
             end
 
-            # TODO: Add support for admin_auto_logon to fog
+            # TODO: Add support for admin_auto_logon to Fog
             # c.admin_auto_logon_count = 100
             # c.admin_auto_logon_enabled = true
 
@@ -288,14 +288,14 @@ class Chef
             c.save
           end
 
-          ## Vcair
+          ## vCloud Air
           ## TODO: make work with floating_ip junk currently used
-          ## NOTE: current vcair networking changes require VM to be powered off
+          ## NOTE: current vCloud Air networking changes require VM to be powered off
           def update_network(bootstrap_options, vapp, vm)
             ## TODO: allow user to specify network to connect to (see above net used)
             # Define network connection for vm based on existing routed network
 
-            # Vcair inlining vapp() and vm()
+            # vCloud Air inlining vapp() and vm()
             #vapp = vdc.vapps.get_by_name(bootstrap_options[:name])
             #vm = vapp.vms.find {|v| v.vapp_name == bootstrap_options[:name]}
             nc = vapp.network_config.find { |n| n if n[:networkName].match(net.name) }
@@ -339,7 +339,7 @@ class Chef
 
           def destroy_machine(action_handler, machine_spec, machine_options)
             server = server_for(machine_spec)
-            if server && server.status != 'archive' # TODO: does Vcair do archive?
+            if server && server.status != 'archive' # TODO: does vCloud Air do archive?
               action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
                 #NOTE: currently doing 1 vm for 1 vapp
                 vapp = vdc.vapps.get_by_name(machine_spec.name)
