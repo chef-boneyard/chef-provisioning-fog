@@ -11,7 +11,7 @@ module FogDriver
       end
 
       def converge_floating_ips(action_handler, machine_spec, machine_options, server)
-        # Digital ocean does not have floating IPs
+        # DigitalOcean does not have floating IPs
       end
 
       def bootstrap_options_for(action_handler, machine_spec, machine_options)
