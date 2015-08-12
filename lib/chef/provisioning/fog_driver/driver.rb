@@ -57,9 +57,9 @@ module FogDriver
   # ~/.aws/credentials or ~/.aws/config), you can read those and merge that information
   # in the compute_options_for function.
   #
-  # ## Location format
+  # ## Reference format
   #
-  # All machines have a location hash to find them.  These are the keys used by
+  # All machines have a reference hash to find them.  These are the keys used by
   # the Fog provisioner:
   #
   # - driver_url: fog:<driver>:<unique_account_info>
@@ -215,7 +215,7 @@ module FogDriver
         wait_for_transport(action_handler, machine_spec, machine_options, server)
       rescue Fog::Errors::TimeoutError
         # Only ever reboot once, and only if it's been less than 10 minutes since we stopped waiting
-        if machine_spec.location['started_at'] || remaining_wait_time(machine_spec, machine_options) < -(10*60)
+        if machine_spec.reference['started_at'] || remaining_wait_time(machine_spec, machine_options) < -(10*60)
           raise
         else
           # Sometimes (on EC2) the machine comes up but gets stuck or has
@@ -239,9 +239,9 @@ module FogDriver
     def destroy_machine(action_handler, machine_spec, machine_options)
       server = server_for(machine_spec)
       if server
-        action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
+        action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.reference['server_id']} at #{driver_url})" do
           server.destroy
-          machine_spec.location = nil
+          machine_spec.reference = nil
         end
       end
       strategy = convergence_strategy_for(machine_spec, machine_options)
@@ -258,7 +258,7 @@ module FogDriver
     end
 
     def image_for(image_spec)
-      compute.images.get(image_spec.location['image_id'])
+      compute.images.get(image_spec.reference['image_id'])
     end
 
     def compute
@@ -267,7 +267,7 @@ module FogDriver
 
     # Not meant to be part of public interface
     def transport_for(machine_spec, machine_options, server, action_handler = nil)
-      if machine_spec.location['is_windows']
+      if machine_spec.reference['is_windows']
         action_handler.report_progress "Waiting for admin password on #{machine_spec.name} to be ready (may take up to 15 minutes)..." if action_handler
         transport = create_winrm_transport(machine_spec, machine_options, server)
         action_handler.report_progress 'Admin password available ...' if action_handler
@@ -303,8 +303,8 @@ module FogDriver
             yield machine_spec, server if block_given?
             next
           end
-        elsif machine_spec.location
-          Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.location['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
+        elsif machine_spec.reference
+          Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
         end
 
         bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
@@ -329,16 +329,16 @@ module FogDriver
             # Assign each one to a machine spec
             machine_spec = machine_specs.pop
             machine_options = specs_and_options[machine_spec]
-            machine_spec.location = {
+            machine_spec.reference = {
               'driver_url' => driver_url,
               'driver_version' => FogDriver::VERSION,
               'server_id' => server.id,
               'creator' => creator,
               'allocated_at' => Time.now.to_i
             }
-            machine_spec.location['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
+            machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
             %w(is_windows ssh_username sudo use_private_ip_for_ssh ssh_gateway).each do |key|
-              machine_spec.location[key] = machine_options[key.to_sym] if machine_options[key.to_sym]
+              machine_spec.reference[key] = machine_options[key.to_sym] if machine_options[key.to_sym]
             end
             action_handler.performed_action "machine #{machine_spec.name} created as #{server.id} on #{driver_url}"
 
@@ -372,7 +372,7 @@ module FogDriver
       if server.state == 'stopped'
         action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
           server.start
-          machine_spec.location['started_at'] = Time.now.to_i
+          machine_spec.reference['started_at'] = Time.now.to_i
         end
         machine_spec.save(action_handler)
       end
@@ -381,16 +381,16 @@ module FogDriver
     def restart_server(action_handler, machine_spec, server)
       action_handler.perform_action "restart machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
         server.reboot
-        machine_spec.location['started_at'] = Time.now.to_i
+        machine_spec.reference['started_at'] = Time.now.to_i
       end
       machine_spec.save(action_handler)
     end
 
     def remaining_wait_time(machine_spec, machine_options)
-      if machine_spec.location['started_at']
-        timeout = option_for(machine_options, :start_timeout) - (Time.now.utc - parse_time(machine_spec.location['started_at']))
+      if machine_spec.reference['started_at']
+        timeout = option_for(machine_options, :start_timeout) - (Time.now.utc - parse_time(machine_spec.reference['started_at']))
       else
-        timeout = option_for(machine_options, :create_timeout) - (Time.now.utc - parse_time(machine_spec.location['allocated_at']))
+        timeout = option_for(machine_options, :create_timeout) - (Time.now.utc - parse_time(machine_spec.reference['allocated_at']))
       end
       timeout > 0 ? timeout : 0.01
     end
@@ -523,8 +523,8 @@ module FogDriver
     end
 
     def server_for(machine_spec)
-      if machine_spec.location
-        compute.servers.get(machine_spec.location['server_id'])
+      if machine_spec.reference
+        compute.servers.get(machine_spec.reference['server_id'])
       else
         nil
       end
@@ -533,11 +533,11 @@ module FogDriver
     def servers_for(machine_specs)
       result = {}
       machine_specs.each do |machine_spec|
-        if machine_spec.location
-          if machine_spec.location['driver_url'] != driver_url
-            raise "Switching a machine's driver from #{machine_spec.location['driver_url']} to #{driver_url} for is not currently supported!  Use machine :destroy and then re-create the machine on the new driver."
+        if machine_spec.reference
+          if machine_spec.reference['driver_url'] != driver_url
+            raise "Switching a machine's driver from #{machine_spec.reference['driver_url']} to #{driver_url} for is not currently supported!  Use machine :destroy and then re-create the machine on the new driver."
           end
-          result[machine_spec] = compute.servers.get(machine_spec.location['server_id'])
+          result[machine_spec] = compute.servers.get(machine_spec.reference['server_id'])
         else
           result[machine_spec] = nil
         end
@@ -548,8 +548,8 @@ module FogDriver
     @@chef_default_lock = Mutex.new
 
     def overwrite_default_key_willy_nilly(action_handler, machine_spec)
-      if machine_spec.location &&
-         Gem::Version.new(machine_spec.location['driver_version']) < Gem::Version.new('0.10')
+      if machine_spec.reference &&
+         Gem::Version.new(machine_spec.reference['driver_version']) < Gem::Version.new('0.10')
         return 'metal_default'
       end
 
@@ -596,7 +596,7 @@ module FogDriver
         raise "Server for node #{machine_spec.name} has not been created!"
       end
 
-      if machine_spec.location['is_windows']
+      if machine_spec.reference['is_windows']
         Machine::WindowsMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       else
         Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
@@ -605,11 +605,11 @@ module FogDriver
 
     def convergence_strategy_for(machine_spec, machine_options)
       # Defaults
-      if !machine_spec.location
+      if !machine_spec.reference
         return ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
       end
 
-      if machine_spec.location['is_windows']
+      if machine_spec.reference['is_windows']
         ConvergenceStrategy::InstallMsi.new(machine_options[:convergence_options], config)
       elsif machine_options[:cached_installer] == true
         ConvergenceStrategy::InstallCached.new(machine_options[:convergence_options], config)
@@ -633,10 +633,10 @@ module FogDriver
           raise "Server has key name '#{server.key_name}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
         end
         key
-      elsif machine_spec.location['key_name']
-        key = get_private_key(machine_spec.location['key_name'])
+      elsif machine_spec.reference['key_name']
+        key = get_private_key(machine_spec.reference['key_name'])
         if !key
-          raise "Server was created with key name '#{machine_spec.location['key_name']}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
+          raise "Server was created with key name '#{machine_spec.reference['key_name']}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
         end
         key
       elsif machine_options[:bootstrap_options][:key_path]
@@ -645,7 +645,7 @@ module FogDriver
         get_private_key(machine_options[:bootstrap_options][:key_name])
       else
         # TODO make a way to suggest other keys to try ...
-        raise "No key found to connect to #{machine_spec.name} (#{machine_spec.location.inspect})!"
+        raise "No key found to connect to #{machine_spec.name} (#{machine_spec.reference.inspect})!"
       end
     end
 
@@ -672,17 +672,17 @@ module FogDriver
 
     def create_ssh_transport(machine_spec, machine_options, server)
       ssh_options = ssh_options_for(machine_spec, machine_options, server)
-      username = machine_spec.location['ssh_username'] || default_ssh_username
-      if machine_options.has_key?(:ssh_username) && machine_options[:ssh_username] != machine_spec.location['ssh_username']
-        Chef::Log.warn("Server #{machine_spec.name} was created with SSH username #{machine_spec.location['ssh_username']} and machine_options specifies username #{machine_options[:ssh_username]}.  Using #{machine_spec.location['ssh_username']}.  Please edit the node and change the chef_provisioning.location.ssh_username attribute if you want to change it.")
+      username = machine_spec.reference['ssh_username'] || default_ssh_username
+      if machine_options.has_key?(:ssh_username) && machine_options[:ssh_username] != machine_spec.reference['ssh_username']
+        Chef::Log.warn("Server #{machine_spec.name} was created with SSH username #{machine_spec.reference['ssh_username']} and machine_options specifies username #{machine_options[:ssh_username]}.  Using #{machine_spec.reference['ssh_username']}.  Please edit the node and change the chef_provisioning.reference.ssh_username attribute if you want to change it.")
       end
       options = {}
-      if machine_spec.location[:sudo] || (!machine_spec.location.has_key?(:sudo) && username != 'root')
+      if machine_spec.reference[:sudo] || (!machine_spec.reference.has_key?(:sudo) && username != 'root')
         options[:prefix] = 'sudo '
       end
 
       remote_host = nil
-      if machine_spec.location['use_private_ip_for_ssh']
+      if machine_spec.reference['use_private_ip_for_ssh']
         remote_host = server.private_ip_address
       elsif !server.public_ip_address
         Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
@@ -695,7 +695,7 @@ module FogDriver
 
       #Enable pty by default
       options[:ssh_pty_enable] = true
-      options[:ssh_gateway] = machine_spec.location['ssh_gateway'] if machine_spec.location.has_key?('ssh_gateway')
+      options[:ssh_gateway] = machine_spec.reference['ssh_gateway'] if machine_spec.reference.has_key?('ssh_gateway')
 
       Transport::SSH.new(remote_host, username, ssh_options, options, config)
     end
