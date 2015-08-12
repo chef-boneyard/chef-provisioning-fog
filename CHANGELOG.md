@@ -1,23 +1,29 @@
 # Changelog
 
+## 0.14.0
+
+- Add provider to support Google Compute Engine ([#97][], [@kri5][])
+- Implement Retryable to fix RequestLimitExceeded error from Fog::Compute::AWS::Error ([#101][], [@irvingpop][])
+- Change 'location' hash to 'reference' to fit post chef-provisioning 1.0 API ([#117][], [@hulu1522][])
+
 ## 0.13.2 (4/2/2015)
 
 - Change dep to work with 1.0
 
 ## 0.13.1 (3/4/2015)
 
-- Fixed floating assignment for Openstack (@tyler-ball)
+- Fixed floating assignment for Openstack ([@tyler-ball][])
 
 ## 0.13 (2/25/2015)
 
-- Support for ~/.aws/credentials (@miguelcnf)
+- Support for ~/.aws/credentials ([@miguelcnf][])
 - Crash fixes for mixed machine options
 
 ## 0.12 (1/27/2015)
 
-- Allow user to pass private key data in machine_options[:ssh_options][:key_data] (@squaresurf)
-- [AWS] Add IAM role support for AWS via fog:AWS:IAM (@justindossey)
-- [Rackspace] Prevent bootstrap options from being destructively modified (@kanerogers)
+- Allow user to pass private key data in machine_options[:ssh_options][:key_data] ([@squaresurf][])
+- [AWS] Add IAM role support for AWS via fog:AWS:IAM ([@justindossey][])
+- [Rackspace] Prevent bootstrap options from being destructively modified ([@kanerogers][])
 
 ## 0.11 (11/5/2014)
 
@@ -37,10 +43,10 @@
 ## 0.8 (8/18/2014)
 
 - [AWS] Image support!  Add AWS driver support for the chef-metal 0.14
-  `machine_image` resource! (@jkeiser / @johnewart)
-- [Joyent] Joyent support! fog:Joyent:<joyent_url> @potatosalad
-- [AWS] Automatic ec2 hints for ohai @patrick-wright
-- [AWS/Eucalyptus] add separate IAM server support @viglesiasce
+  `machine_image` resource! ([@jkeiser][] / [@johnewart][])
+- [Joyent] Joyent support! fog:Joyent:<joyent_url> [@potatosalad][]
+- [AWS] Automatic ec2 hints for ohai [@patrick-wright][]
+- [AWS/Eucalyptus] add separate IAM server support [@viglesiasce][]
   ```ruby
   with_driver 'fog:AWS', :compute_options => {
     :aws_access_key_id => 'YYYYYYYYYYYYYYYYY',
@@ -52,7 +58,7 @@
   Or use the `EC2_URL` and `AWS_IAM_URL` environment variables a la Eucalyptus.
   - Issue https://github.com/opscode/chef-metal-fog/issues/42 filed to get this
     data as part of the URL itself so it can be effectively reinflated.
-- [AWS] fix crash accessing tags @msonnabaum
+- [AWS] fix crash accessing tags [@msonnabaum][]
 
 ## 0.7.1 (7/15/2014)
 
@@ -70,9 +76,9 @@
 
 ## 0.6 (6/18/2014)
 
-- @thommay split the driver into subclasses for each provider instead of tons of if statements
-- @lamont-granquist allow DigitalOcean to use SSH paths
-- Use unix timestamps instead of strings (@thommay)
+- [@thommay][] split the driver into subclasses for each provider instead of tons of if statements
+- [@lamont-granquist][] allow DigitalOcean to use SSH paths
+- Use unix timestamps instead of strings ([@thommay][])
 - Don't require PKCS8 to be installed
 
 ## 0.5.4 (6/10/2014)
@@ -81,7 +87,7 @@
 
 ## 0.5.3 (6/5/2014)
 
-- @thommay fix issue where keypair fingerprints don't compare correctly across machines
+- [@thommay][] fix issue where keypair fingerprints don't compare correctly across machines
 
 ## 0.5.2 (6/4/2014)
 
@@ -89,30 +95,30 @@
 
 ## 0.5.1 (6/4/2014)
 
-- [Openstack] @thommay fix for credentials retrieval
+- [Openstack] [@thommay][] fix for credentials retrieval
 
 ## 0.5 (6/4/2014)
 
-- [Rackspace] @hhoover @thommay Rackspace support!
-- [CloudStack] @marcusn CloudStack support!
+- [Rackspace] [@hhoover][] @thommay Rackspace support!
+- [CloudStack] [@marcusn][] CloudStack support!
 - Adjust to chef-metal 0.11 interface
 - Major refactor for readability
 - [AWS] Make region part of fog:AWS URL: fog:AWS:<id>:<region> is canonical
 - [AWS] Support fog:AWS:<profile>:<region> to override regionis now supported.
 - [AWS] Much better support for regions and AWS environment variables
-- @marcusn numerous bugfixes
+- [@marcusn][] numerous bugfixes
 - Fix PKCS8 crash on Ruby 2.0+
 - Don't reboot server on every chef-client run if non-connectable
 - Warn when username at time of creation is not the same as the current username (ssh might fail)
-- @irvingpop speed up converges by downloading Chef from the remote machine (InstallSh instead of InstallCached)
+- [@irvingpop][] speed up converges by downloading Chef from the remote machine (InstallSh instead of InstallCached)
 
 ## 0.4 (5/1/2014)
 
 - Work with new Cheffish 0.4 inline_resource
-- Increase stability of delete_machine in error conditions (@andrewdotn)
-- [EC2] Support automatically-created PKCS#8 SHA1 fingerprints for keys
-- [Openstack] Make floating IP attach work (@ohlol)
-- [Openstack] Fill in "creator" field of provisioner_output (@wilreichert)
+- Increase stability of delete_machine in error conditions ([@andrewdotn][])
+- [EC2] Support automatically-created PKCS[#8][] SHA1 fingerprints for keys
+- [Openstack] Make floating IP attach work ([@ohlol][])
+- [Openstack] Fill in "creator" field of provisioner_output ([@wilreichert][])
 
 ## 0.3.1 (4/13/2014)
 
@@ -130,3 +136,30 @@
 
 - Support chef_server_timeout
 - Fix provisioner_init (for kitchen-metal and metal executable)
+
+<!--- The following link definition list is generated by PimpMyChangelog --->
+[#8]: https://github.com/chef/chef-provisioning-fog/issues/8
+[#97]: https://github.com/chef/chef-provisioning-fog/issues/97
+[#101]: https://github.com/chef/chef-provisioning-fog/issues/101
+[#117]: https://github.com/chef/chef-provisioning-fog/issues/117
+[@andrewdotn]: https://github.com/andrewdotn
+[@hhoover]: https://github.com/hhoover
+[@hulu1522]: https://github.com/hulu1522
+[@irvingpop]: https://github.com/irvingpop
+[@jkeiser]: https://github.com/jkeiser
+[@johnewart]: https://github.com/johnewart
+[@justindossey]: https://github.com/justindossey
+[@kanerogers]: https://github.com/kanerogers
+[@kri5]: https://github.com/kri5
+[@lamont-granquist]: https://github.com/lamont-granquist
+[@marcusn]: https://github.com/marcusn
+[@miguelcnf]: https://github.com/miguelcnf
+[@msonnabaum]: https://github.com/msonnabaum
+[@ohlol]: https://github.com/ohlol
+[@patrick-wright]: https://github.com/patrick-wright
+[@potatosalad]: https://github.com/potatosalad
+[@squaresurf]: https://github.com/squaresurf
+[@thommay]: https://github.com/thommay
+[@tyler-ball]: https://github.com/tyler-ball
+[@viglesiasce]: https://github.com/viglesiasce
+[@wilreichert]: https://github.com/wilreichert

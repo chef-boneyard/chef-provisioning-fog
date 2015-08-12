@@ -12,8 +12,6 @@ Gem::Specification.new do |s|
   s.email = ['jkeiser@getchef.com', 'hh@vulk.co', 't@vulk.co', 'w@vulk.co']
   s.homepage = 'https://github.com/opscode/chef-provisioning-fog'
 
-  s.add_dependency 'chef'
-  s.add_dependency 'cheffish', '>= 0.4'
   s.add_dependency 'chef-provisioning', '~> 1.0'
   s.add_dependency 'fog'
   s.add_dependency 'retryable'
