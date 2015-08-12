@@ -27,7 +27,7 @@ module FogDriver
         bootstrap_options
       end
 
-      def find_floating_ips(server)
+      def find_floating_ips(server, action_handler)
         []
       end
 
