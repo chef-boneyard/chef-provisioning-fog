@@ -12,7 +12,7 @@ module FogDriver
       end
 
       def create_winrm_transport(machine_spec, machine_options, server)
-        remote_host = if machine_spec.location['use_private_ip_for_ssh']
+        remote_host = if machine_spec.reference['use_private_ip_for_ssh']
                         server.private_ip_address
                       elsif !server.public_ip_address
                         Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
@@ -24,16 +24,16 @@ module FogDriver
                       end
 		Chef::Log::info("Connecting to server #{remote_host}")
 		
-        port = machine_spec.location['winrm_port'] || 5985
+        port = machine_spec.reference['winrm_port'] || 5985
         endpoint = "http://#{remote_host}:#{port}/wsman"
         type = :plaintext
-        decrypted_password = machine_options[:adminPassword]
+        decrypted_password = machine_spec.reference['winrm.password'] 
 
         # Use basic HTTP auth - this is required for the WinRM setup we
         # are using
         # TODO: Improve that.
         options = {
-            :user => machine_spec.location['winrm.username'] || 'Administrator',
+            :user => machine_spec.reference['winrm.username'] || 'Administrator',
             :pass => decrypted_password,
             :disable_sspi => false,
             :basic_auth_only => true
