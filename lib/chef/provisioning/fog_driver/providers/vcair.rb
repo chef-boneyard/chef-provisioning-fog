@@ -1,5 +1,4 @@
 #   fog:Vcair:<client id>
-require 'byebug'
 class Chef
   module Provisioning
     module FogDriver
@@ -86,7 +85,7 @@ class Chef
               rescue Fog::Errors::Error => e
                 raise e.message
               end
-              
+
               yield vm if block_given?
               vm
 
@@ -186,7 +185,6 @@ class Chef
             #    Primary NIC cannot be changed when the VM is not in Powered-off state
             # See code in update_network()
             #DISABLED: converge_floating_ips(action_handler, machine_spec, machine_options, server)
-            #byebug
 
             begin
               wait_for_transport(action_handler, machine_spec, machine_options, server)
@@ -254,7 +252,7 @@ class Chef
               raise e
             end
           end
-          
+
           # Create a WinRM transport for a vCloud Air Vapp VM instance
           # @param [Hash] machine_spec Machine-spec hash
           # @param [Hash] machine_options Machine options (from the recipe)
@@ -264,7 +262,7 @@ class Chef
             port = machine_spec.location['winrm_port'] || 5985
             endpoint = "http://#{server.ip_address}:#{port}/wsman"
             type = :plaintext
-            
+
             # Use basic HTTP auth - this is required for the WinRM setup we
             # are using
             # TODO: Improve that and support different users
@@ -276,7 +274,7 @@ class Chef
             }
             Chef::Provisioning::Transport::WinRM.new(endpoint, type, options, {})
           end
-          
+
           def update_customization(bootstrap_options, server)
             ## Initialization before first power on.
             custom=server.customization
@@ -296,10 +294,10 @@ class Chef
                          bootstrap_options[:ssh_options][:password]
                        when 'winrm'
                          bootstrap_options[:winrm_options][:password]
-                       end  
+                       end
 
             if password
-              custom.admin_password =  password 
+              custom.admin_password =  password
               custom.admin_password_auto = false
               custom.reset_password_required = false
             else
