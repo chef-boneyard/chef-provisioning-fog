@@ -34,12 +34,13 @@ class Chef
             bootstrap_options[:machine_type] = 'n1-standard-1'
             bootstrap_options[:zone_name] = 'europe-west1-b'
             bootstrap_options[:name] = machine_spec.name
+            bootstrap_options[:disk_size] ||= 10
 
             if bootstrap_options[:disks].nil?
               # create the persistent boot disk
               disk_defaults = {
                 :name => machine_spec.name,
-                :size_gb => 10,
+                :size_gb => bootstrap_options[:disk_size],
                 :zone_name => bootstrap_options[:zone_name],
                 :source_image => bootstrap_options[:image_name],
               }
