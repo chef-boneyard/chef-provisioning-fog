@@ -34,6 +34,82 @@ module FogDriver
         [result, id]
       end
 
+      # Image methods
+      def allocate_image(action_handler, image_spec, image_options, machine_spec, machine_options)
+        image = image_for(image_spec)
+        if image
+          raise "The image already exists, why are you asking me to create it?  I can't do that, Dave."
+        end
+        action_handler.perform_action "Create image #{image_spec.name} from machine #{machine_spec.name} with options #{image_options.inspect}" do
+          response = compute.create_image(
+            machine_spec.reference['server_id'], image_spec.name,
+            {
+              description: "The Image named '#{image_spec.name}"
+            })
+
+          image_spec.reference = {
+            driver_url: driver_url,
+            driver_version: FogDriver::VERSION,
+            image_id: response.body['image']['id'],
+            creator: creator,
+            allocated_it: Time.new.to_i
+          }
+        end
+      end
+
+      def ready_image(action_handler, image_spec, image_options)
+        actual_image = image_for(image_spec)
+        if actual_image.nil?
+          raise 'Cannot ready an image that does not exist'
+        else
+          if actual_image.status != 'ACTIVE'
+            action_handler.report_progress 'Waiting for image to be active ...'
+            wait_until_ready_image(action_handler, image_spec, actual_image)
+          else
+            action_handler.report_progress "Image #{image_spec.name} is active!"
+          end
+        end
+      end
+
+      def destroy_image(action_handler, image_spec, image_options)
+        image = image_for(image_spec)
+        unless image.status == "DELETED"
+          image.destroy
+        end
+      end
+
+      def wait_until_ready_image(action_handler, image_spec, image=nil)
+        wait_until_image(action_handler, image_spec, image) { image.status == 'ACTIVE' }
+      end
+
+      def wait_until_image(action_handler, image_spec, image=nil, &block)
+        image ||= image_for(image_spec)
+        time_elapsed = 0
+        sleep_time = 10
+        max_wait_time = 300
+        if !yield(image)
+          action_handler.report_progress "waiting for image #{image_spec.name} (#{image.id} on #{driver_url}) to be active ..."
+          while time_elapsed < max_wait_time && !yield(image)
+           action_handler.report_progress "been waiting #{time_elapsed}/#{max_wait_time} -- sleeping #{sleep_time} seconds for image #{image_spec.name} (#{image.id} on #{driver_url}) to be ACTIVE instead of #{image.status}..."
+           sleep(sleep_time)
+           image.reload
+           time_elapsed += sleep_time
+          end
+          unless yield(image)
+            raise "Image #{image.id} did not become ready within #{max_wait_time} seconds"
+          end
+          action_handler.report_progress "Image #{image_spec.name} is now ready"
+        end
+      end
+
+      def image_for(image_spec)
+        if image_spec.reference
+          compute.images.get(image_spec.reference[:image_id]) || compute.images.get(image_spec.reference['image_id'])
+        else
+          nil
+        end
+      end
+
     end
   end
 end
