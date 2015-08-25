@@ -1,5 +1,4 @@
 # fog:OpenStack:https://identifyhost:portNumber/v2.0
-require 'byebug'
 class Chef
 module Provisioning
 module FogDriver
@@ -43,12 +42,12 @@ module FogDriver
         end
         action_handler.perform_action "Create image #{image_spec.name} from machine #{machine_spec.name} with options #{image_options.inspect}" do
           response = compute.create_image(
-            machine_spec.location['server_id'], image_spec.name,
+            machine_spec.reference['server_id'], image_spec.name,
             {
               description: "The Image named '#{image_spec.name}"
             })
 
-          image_spec.location = {
+          image_spec.reference = {
             driver_url: driver_url,
             driver_version: FogDriver::VERSION,
             image_id: response.body['image']['id'],
@@ -104,8 +103,8 @@ module FogDriver
       end
 
       def image_for(image_spec)
-        if image_spec.location
-          compute.images.get(image_spec.location[:image_id]) || compute.images.get(image_spec.location['image_id'])
+        if image_spec.reference
+          compute.images.get(image_spec.reference[:image_id]) || compute.images.get(image_spec.reference['image_id'])
         else
           nil
         end
