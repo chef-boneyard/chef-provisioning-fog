@@ -79,6 +79,7 @@ module FogDriver
   # - ssh_timeout: the time to wait for ssh to be available if the instance is detected as up (defaults to 20)
   # - ssh_username: username to use for ssh
   # - sudo: true to prefix all commands with "sudo"
+  # - no_network: this supercedes private and public (default: false)
   # - use_private_ip_for_ssh: hint to use private floating_ip when available
   # - convergence_options: hash of options for the convergence strategy
   #   - chef_client_timeout: the time to wait for chef-client to finish
@@ -209,7 +210,9 @@ module FogDriver
       wait_until_ready(action_handler, machine_spec, machine_options, server)
 
       # Attach/detach floating IPs if necessary
-      converge_floating_ips(action_handler, machine_spec, machine_options, server)
+      if !machine_spec.location['no_network']
+        converge_floating_ips(action_handler, machine_spec, machine_options, server)
+      end
 
       begin
         wait_for_transport(action_handler, machine_spec, machine_options, server)
@@ -337,7 +340,7 @@ module FogDriver
               'allocated_at' => Time.now.to_i
             }
             machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
-            %w(is_windows ssh_username sudo use_private_ip_for_ssh ssh_gateway).each do |key|
+            %w(is_windows ssh_username sudo use_private_ip_for_ssh ssh_gateway ssh_address_locations).each do |key|
               machine_spec.reference[key] = machine_options[key.to_sym] if machine_options[key.to_sym]
             end
             action_handler.performed_action "machine #{machine_spec.name} created as #{server.id} on #{driver_url}"
@@ -682,6 +685,32 @@ module FogDriver
       end
 
       remote_host = nil
+
+      # BDANGIT
+      # no_network: server.ip_addresses.first
+      # use_private_ip_for_ssh: server.private_ip_address
+      # not public_ip_address: server.private_ip_address
+      # public_ip_address: public_ip_address
+
+      # if machine_spec.reference['use_private_ip_for_ssh']
+      #    Chef::Log.warn("this flag should be deprecated in favor of ssh_address_locations")
+      #    remote_host = server.private_ip_address
+      # else
+      #   parse ssh_address_locations
+      #   location =~ (public_ip_address|private_ip_address|ip_addresses)
+      #    
+      #   case location
+      #     when 'public_ip_address'
+      #       remote_host = server.public_ip_address
+      #     when 'private_ip_address'
+      #       remote_host = server.private_ip_address   
+      #     when 'ip_addresses'
+      #       # try to get floating ips
+      #       try    
+      #    else
+      #      raise 'invalid ssh option'
+      #    end
+
       if machine_spec.reference['use_private_ip_for_ssh']
         remote_host = server.private_ip_address
       elsif !server.public_ip_address
