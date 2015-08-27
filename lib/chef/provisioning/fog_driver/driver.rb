@@ -79,7 +79,7 @@ module FogDriver
   # - ssh_timeout: the time to wait for ssh to be available if the instance is detected as up (defaults to 20)
   # - ssh_username: username to use for ssh
   # - sudo: true to prefix all commands with "sudo"
-  # - no_network: this supercedes private and public (default: false)
+  # - ssh_address_locations: try and find an address using the locations provided and will stop on the first successful method (default: ['public_ip_address', 'private_ip_address'])
   # - use_private_ip_for_ssh: hint to use private floating_ip when available
   # - convergence_options: hash of options for the convergence strategy
   #   - chef_client_timeout: the time to wait for chef-client to finish
@@ -209,10 +209,7 @@ module FogDriver
       start_server(action_handler, machine_spec, server)
       wait_until_ready(action_handler, machine_spec, machine_options, server)
 
-      # Attach/detach floating IPs if necessary
-      if !machine_spec.location['no_network']
-        converge_floating_ips(action_handler, machine_spec, machine_options, server)
-      end
+      converge_floating_ips(action_handler, machine_spec, machine_options, server)
 
       begin
         wait_for_transport(action_handler, machine_spec, machine_options, server)
@@ -686,40 +683,14 @@ module FogDriver
 
       remote_host = nil
 
-      # BDANGIT
-      # no_network: server.ip_addresses.first
-      # use_private_ip_for_ssh: server.private_ip_address
-      # not public_ip_address: server.private_ip_address
-      # public_ip_address: public_ip_address
-
-      # if machine_spec.reference['use_private_ip_for_ssh']
-      #    Chef::Log.warn("this flag should be deprecated in favor of ssh_address_locations")
-      #    remote_host = server.private_ip_address
-      # else
-      #   parse ssh_address_locations
-      #   location =~ (public_ip_address|private_ip_address|ip_addresses)
-      #    
-      #   case location
-      #     when 'public_ip_address'
-      #       remote_host = server.public_ip_address
-      #     when 'private_ip_address'
-      #       remote_host = server.private_ip_address   
-      #     when 'ip_addresses'
-      #       # try to get floating ips
-      #       try    
-      #    else
-      #      raise 'invalid ssh option'
-      #    end
-
       if machine_spec.reference['use_private_ip_for_ssh']
+        Chef::Log.warn("This driver option should be deprecated in favor of setting your preferred 'ssh_address_locations'")
         remote_host = server.private_ip_address
-      elsif !server.public_ip_address
-        Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
-        remote_host = server.private_ip_address
-      elsif server.public_ip_address
-        remote_host = server.public_ip_address
       else
-        raise "Server #{server.id} has no private or public IP address!"
+        remote_host = parse_ssh_address_locations(machine_spec, server)
+        if remote_host.nil? || remote_host.empty?
+          raise "Server #{server.id} has no private or public IP address!"
+        end
       end
 
       #Enable pty by default
@@ -731,6 +702,32 @@ module FogDriver
 
     def self.compute_options_for(provider, id, config)
       raise "unsupported Fog provider #{provider}"
+    end
+
+    def parse_ssh_address_locations(machine_spec, server)
+      remote_host = ''
+      locations = ssh_address_locations?(machine_spec) ? machine_spec.reference['ssh_address_locations'] : ['public_ip_address', 'private_ip_address']
+      locations.each do |location|
+        case location
+        when 'public_ip_address'
+          remote_host = server.public_ip_address
+        when 'private_ip_address'
+          remote_host = server.private_ip_address
+        when 'ip_addresses'
+          # just grab the first one
+          remote_host = server.ip_addresses.first
+        else
+          raise "Invalid 'ssh_address_locations'.  They can only be 'public_ip_address', 'private_ip_address', and/or 'ip_addresses'."
+        end
+        # go to next option only if the ip is nil or empty
+        break unless remote_host.nil? || remote_host.empty?
+      end
+      remote_host
+    end
+
+    def ssh_address_locations?(machine_spec)
+      ssh_address_locations = machine_spec.reference['ssh_address_locations'].reject { |l| l.empty? }
+      not ssh_address_locations.nil? || ssh_address_locations.empty?
     end
   end
 end
