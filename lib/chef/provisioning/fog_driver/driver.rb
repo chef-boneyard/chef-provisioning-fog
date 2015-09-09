@@ -66,7 +66,7 @@ module FogDriver
   # - server_id: the ID of the server so it can be found again
   # - created_at: timestamp server was created
   # - started_at: timestamp server was last started
-  # - is_windows, ssh_username, sudo, use_private_ip_for_ssh: copied from machine_options
+  # - is_windows, ssh_username, sudo: copied from machine_options
   #
   # ## Machine options
   #
@@ -79,7 +79,8 @@ module FogDriver
   # - ssh_timeout: the time to wait for ssh to be available if the instance is detected as up (defaults to 20)
   # - ssh_username: username to use for ssh
   # - sudo: true to prefix all commands with "sudo"
-  # - use_private_ip_for_ssh: hint to use private floating_ip when available
+  # - transport_address_location: ssh into machine via `:public_ip`, `:private_ip`, or `:ip_addresses`
+  # - use_private_ip_for_ssh: (DEPRECATED and is replaced with `transport_address_location`) hint to use private floating_ip when available
   # - convergence_options: hash of options for the convergence strategy
   #   - chef_client_timeout: the time to wait for chef-client to finish
   #   - chef_server - the chef server to point convergence at
@@ -208,7 +209,6 @@ module FogDriver
       start_server(action_handler, machine_spec, server)
       wait_until_ready(action_handler, machine_spec, machine_options, server)
 
-      # Attach/detach floating IPs if necessary
       converge_floating_ips(action_handler, machine_spec, machine_options, server)
 
       begin
@@ -337,7 +337,15 @@ module FogDriver
               'allocated_at' => Time.now.to_i
             }
             machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
-            %w(is_windows ssh_username sudo use_private_ip_for_ssh ssh_gateway).each do |key|
+            # TODO 2.0 We no longer support `use_private_ip_for_ssh`, only `transport_address_location
+            if machine_options[:use_private_ip_for_ssh]
+              unless @transport_address_location_warned
+                Cheff::Log.warn("The machine option ':use_private_ip_for_ssh' has been deprecated, use ':transport_address_location'")
+                @transport_address_location_warned = true
+              end
+              machine_options = Cheffish::MergedConfig.new(machine_options, {:transport_address_location => :private_ip})
+            end
+            %w(is_windows ssh_username sudo transport_address_location ssh_gateway).each do |key|
               machine_spec.reference[key] = machine_options[key.to_sym] if machine_options[key.to_sym]
             end
             action_handler.performed_action "machine #{machine_spec.name} created as #{server.id} on #{driver_url}"
@@ -681,15 +689,8 @@ module FogDriver
         options[:prefix] = 'sudo '
       end
 
-      remote_host = nil
-      if machine_spec.reference['use_private_ip_for_ssh']
-        remote_host = server.private_ip_address
-      elsif !server.public_ip_address
-        Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
-        remote_host = server.private_ip_address
-      elsif server.public_ip_address
-        remote_host = server.public_ip_address
-      else
+      remote_host = determine_remote_host(machine_spec, server)
+      if remote_host.nil? || remote_host.empty?
         raise "Server #{server.id} has no private or public IP address!"
       end
 
@@ -702,6 +703,32 @@ module FogDriver
 
     def self.compute_options_for(provider, id, config)
       raise "unsupported Fog provider #{provider}"
+    end
+
+    def determine_remote_host(machine_spec, server)
+      transport_address_location = (machine_spec.reference['transport_address_location'] || :none).to_sym
+
+      if machine_spec.reference['use_private_ip_for_ssh']
+        # The machine_spec has the old config key, lets update it - a successful chef converge will save the machine_spec
+        # TODO in 2.0 get rid of this update
+        machine_spec.reference.delete('use_private_ip_for_ssh')
+        machine_spec.reference['transport_address_location'] = :private_ip
+        server.private_ip_address
+      elsif transport_address_location == :ip_addresses
+        server.ip_addresses.first
+      elsif transport_address_location == :private_ip
+        server.private_ip_address
+      elsif transport_address_location == :public_ip
+        server.public_ip_address
+      elsif !server.public_ip_address && server.private_ip_address
+        Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'transport_address_location' => :private_ip if this will always be the case ...")
+        server.private_ip_address
+      elsif server.public_ip_address
+        server.public_ip_address
+      else
+        raise "Server #{server.id} has no private or public IP address!"
+        # raise "Invalid 'transport_address_location'.  They can only be 'public_ip', 'private_ip', or 'ip_addresses'."
+      end
     end
   end
 end
