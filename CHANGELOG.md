@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+- Support for "no_network" by introduction of ssh_address_locations option ([@bdangit][])
+- Add XenServer support ([@kongslund][])
+- Do not override bootstrap_options if set in google-provider ([@kri5][])
+- Adds ability to specify default disk size to google-provider ([@kri5][])
+- Openstack image support ([@hh][])
+- New provider for VMWare vCloud Air ([@hh][])
+- Solve NoMethodError for fog providers that do not provide the 'addresses' method to the 'server' object ([@randomcamel][])
+
 ## 0.14.0
 
 - Add provider to support Google Compute Engine ([#97][], [@kri5][])
