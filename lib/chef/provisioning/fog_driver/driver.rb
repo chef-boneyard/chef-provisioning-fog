@@ -280,7 +280,7 @@ module FogDriver
     protected
 
     def option_for(machine_options, key)
-      machine_options[key] || DEFAULT_OPTIONS[key]
+      machine_options[:bootstrap_options][key] || DEFAULT_OPTIONS[key]
     end
 
     def creator
