@@ -88,6 +88,56 @@ machine 'qa-webserver' do
 end
 ```
 
+### Rackspace
+
+For this example, you must configure `knife.rb` with your credentials and a region to operate on. This example is [also available as a Github repo](https://github.com/martinb3/chef-provisioning-rackspace-example).
+
+You must configure some credentials and region in a `knife.rb` file like so:
+```ruby
+  driver 'fog:Rackspace'
+  driver_options :compute_options => {
+    :rackspace_username => 'my_rackspace_user',
+    :rackspace_api_key  => 'api_key_for_user',
+    :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc
+  }
+```
+
+Ensure your Gemfile has (or install these with `gem install`):
+```
+gem 'chef-provisioning'
+gem 'chef-provisioning-fog'
+```
+
+Then, here's an example of making a keypair and booting a server:
+```ruby
+require 'chef/provisioning'
+require 'chef/provisioning/fog_driver/recipe_dsl'
+
+# create/update a keypair at Rackspace's API endpoint, so we can use it later
+fog_key_pair 'example_id_rsa'
+
+# Options to bootstrap 2gb General instance with CentOS 6 (PVHVM)
+with_machine_options({
+  :bootstrap_options => {
+    :flavor_id => 'general1-2', # required
+    :image_id  => 'fabe045f-43f8-4991-9e6c-5cabd617538c', # required
+    :key_name  => 'example_id_rsa',
+
+    # optional attributes:
+    #   :disk_config, :metadata, :personality, :config_drive,
+    #   :boot_volume_id, :boot_image_id
+    #
+    # ** :image_id must be "" if :boot_volume_id or :boot_image_id is provided
+  }
+})
+
+machine 'mario' do
+  tag 'itsa_me'
+  converge true
+end
+```
+
+If you run into SSH key trouble, [see this issue](https://github.com/chef/chef-provisioning-fog/issues/130) for some background of the chef-provisioning-fog driver and the fog library's different ways of bootstraping a server at Rackspace.
 
 ### Cleaning up
 
