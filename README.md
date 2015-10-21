@@ -1,5 +1,9 @@
 # chef-provisioning-fog
 
+[![Gem Version](https://img.shields.io/gem/v/chef-provisioning-fog.svg)][gem]
+[![Build Status](https://travis-ci.org/chef/chef-provisioning-fog.svg?branch=master)][travis]
+[![Dependency Status](https://img.shields.io/gemnasium/chef/chef-provisioning-fog.svg)][gemnasium]
+
 This is the Fog driver for Chef Provisioning.  It provides Amazon EC2, Rackspace, DigitalOcean, SoftLayer, OpenStack, vCloud Air and XenServer functionality.
 
 ## Documentation
@@ -198,3 +202,7 @@ Drivers handle the real work of getting those abstract definitions into real, ph
 The driver API is separated out so that new drivers can be made with minimal effort (without having to rewrite ssh, tunneling, bootstrapping, and OS support).  But to the user, they appear as a single thing, so that the machine acquisition can use its smarts to autodetect the other bits (transports, OS's, etc.).
 
 Drivers save their data in the Chef node itself, so that they will be accessible to everyone who is using the Chef server to manage the nodes.
+
+[gem]: https://rubygems.org/gems/chef-provisioning-fog
+[travis]: https://travis-ci.org/chef/chef-provisioning-fog
+[gemnasium]: https://gemnasium.com/chef/chef-provisioning-fog
