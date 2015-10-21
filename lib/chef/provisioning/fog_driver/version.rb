@@ -1,7 +1,7 @@
 class Chef
-module Provisioning
-module FogDriver
-  VERSION = '0.16.0'
-end
-end
+  module Provisioning
+    module FogDriver
+      VERSION = '0.15.1'
+    end
+  end
 end
