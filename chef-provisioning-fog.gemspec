@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.homepage = 'https://github.com/opscode/chef-provisioning-fog'
 
   s.add_dependency 'chef-provisioning', '~> 1.0'
-  s.add_dependency 'fog'
+  s.add_dependency 'fog', '=> 1.35.0'
   s.add_dependency 'retryable'
 
   s.add_development_dependency 'rspec'
