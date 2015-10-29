@@ -1,21 +1,30 @@
 # Change Log
 
+## [0.15.2](https://github.com/chef/chef-provisioning-fog/tree/0.15.2) (2015-10-29)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.1...0.15.2)
+
+**Merged pull requests:**
+
+- Revert "Fix for \#106" [\#137](https://github.com/chef/chef-provisioning-fog/pull/137) ([kri5](https://github.com/kri5))
+
 ## [v0.15.1](https://github.com/chef/chef-provisioning-fog/tree/v0.15.1) (2015-10-21)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.0...v0.15.1)
 
 **Fixed bugs:**
 
 - \[openstack\] timeout calculation [\#106](https://github.com/chef/chef-provisioning-fog/issues/106)
+- fails to authenticate \(chef server 10.18.2\) [\#26](https://github.com/chef/chef-provisioning-fog/issues/26)
 - Fix for \#106 [\#133](https://github.com/chef/chef-provisioning-fog/pull/133) ([jjasghar](https://github.com/jjasghar))
 
 **Closed issues:**
 
 - Simple example fails with :transport\_options required \[openstack\] [\#127](https://github.com/chef/chef-provisioning-fog/issues/127)
 - Rackspace - support for RackConnect [\#124](https://github.com/chef/chef-provisioning-fog/issues/124)
-- fails to authenticate \(chef server 10.18.2\) [\#26](https://github.com/chef/chef-provisioning-fog/issues/26)
 
 **Merged pull requests:**
 
+- 0.15.1 release [\#136](https://github.com/chef/chef-provisioning-fog/pull/136) ([jjasghar](https://github.com/jjasghar))
+- Update README.md [\#135](https://github.com/chef/chef-provisioning-fog/pull/135) ([jjasghar](https://github.com/jjasghar))
 - Fixed up examples. [\#134](https://github.com/chef/chef-provisioning-fog/pull/134) ([jjasghar](https://github.com/jjasghar))
 - Add gemspec files to allow bundler to run from the gem [\#132](https://github.com/chef/chef-provisioning-fog/pull/132) ([ksubrama](https://github.com/ksubrama))
 - Add a Rackspace example with code samples/links [\#131](https://github.com/chef/chef-provisioning-fog/pull/131) ([martinb3](https://github.com/martinb3))
@@ -25,25 +34,33 @@
 ## [v0.15.0](https://github.com/chef/chef-provisioning-fog/tree/v0.15.0) (2015-09-16)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.14.0...v0.15.0)
 
+**Implemented enhancements:**
+
+- Support for "no\_network" by introduction of ssh\_address\_locations option [\#96](https://github.com/chef/chef-provisioning-fog/pull/96) ([bdangit](https://github.com/bdangit))
+
 **Fixed bugs:**
 
+- google-provider: Adds ability to specify default disk size [\#103](https://github.com/chef/chef-provisioning-fog/pull/103) ([kri5](https://github.com/kri5))
 - Solve NoMethodError for fog providers that do not provide the 'addresses' method to the 'server' object [\#93](https://github.com/chef/chef-provisioning-fog/pull/93) ([SIGUSR2](https://github.com/SIGUSR2))
 
 **Merged pull requests:**
 
 - Adding a CONTRIBUTING document  [\#121](https://github.com/chef/chef-provisioning-fog/pull/121) ([tyler-ball](https://github.com/tyler-ball))
-- google-provider: Adds ability to specify default disk size [\#103](https://github.com/chef/chef-provisioning-fog/pull/103) ([kri5](https://github.com/kri5))
 - Added XenServer support [\#99](https://github.com/chef/chef-provisioning-fog/pull/99) ([kongslund](https://github.com/kongslund))
-- Support for "no\_network" by introduction of ssh\_address\_locations option [\#96](https://github.com/chef/chef-provisioning-fog/pull/96) ([bdangit](https://github.com/bdangit))
 
 ## [v0.14.0](https://github.com/chef/chef-provisioning-fog/tree/v0.14.0) (2015-08-12)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.13.2...v0.14.0)
+
+**Implemented enhancements:**
+
+- Add openstack image support [\#110](https://github.com/chef/chef-provisioning-fog/pull/110) ([hh](https://github.com/hh))
 
 **Fixed bugs:**
 
 - Driver 'location' hash issue [\#116](https://github.com/chef/chef-provisioning-fog/issues/116)
 - Better message about inability to connect [\#62](https://github.com/chef/chef-provisioning-fog/issues/62)
 - Change 'location' hash to 'reference', fixes \#116 [\#117](https://github.com/chef/chef-provisioning-fog/pull/117) ([hulu1522](https://github.com/hulu1522))
+- Windows support working [\#107](https://github.com/chef/chef-provisioning-fog/pull/107) ([hh](https://github.com/hh))
 - google-provider: Do not override bootstrap\_options if set [\#102](https://github.com/chef/chef-provisioning-fog/pull/102) ([kri5](https://github.com/kri5))
 
 **Closed issues:**
@@ -54,8 +71,6 @@
 
 - Fog, vCloud Air, OpenStack, DigitalOcean, edit re: chef-metal [\#115](https://github.com/chef/chef-provisioning-fog/pull/115) ([jamescott](https://github.com/jamescott))
 - Initial .travis.yml. [\#112](https://github.com/chef/chef-provisioning-fog/pull/112) ([randomcamel](https://github.com/randomcamel))
-- Add openstack image support [\#110](https://github.com/chef/chef-provisioning-fog/pull/110) ([hh](https://github.com/hh))
-- Windows support working [\#107](https://github.com/chef/chef-provisioning-fog/pull/107) ([hh](https://github.com/hh))
 - Implement Retryable to fix RequestLimitExceeded error from Fog::Compute::AWS::Error [\#101](https://github.com/chef/chef-provisioning-fog/pull/101) ([irvingpop](https://github.com/irvingpop))
 - Adds servers\_for method to google provider [\#98](https://github.com/chef/chef-provisioning-fog/pull/98) ([kri5](https://github.com/kri5))
 - Adds a provider to support Google cloud [\#97](https://github.com/chef/chef-provisioning-fog/pull/97) ([kri5](https://github.com/kri5))
@@ -91,12 +106,12 @@
 
 - Providers::AWS calls nonexistent Cheffish::MergedConfig\#delete [\#57](https://github.com/chef/chef-provisioning-fog/issues/57)
 - attach\_ip\_from\_pool and attach\_ip updates in fog\_driver.rb [\#48](https://github.com/chef/chef-provisioning-fog/issues/48)
+- Support loading AWS credentials from ~/.aws/credentials [\#41](https://github.com/chef/chef-provisioning-fog/issues/41)
 
 **Closed issues:**
 
 - Unable to set convergence\_options with AWS driver [\#78](https://github.com/chef/chef-provisioning-fog/issues/78)
 - Attaching floating IP addresses [\#77](https://github.com/chef/chef-provisioning-fog/issues/77)
-- Support loading AWS credentials from ~/.aws/credentials [\#41](https://github.com/chef/chef-provisioning-fog/issues/41)
 
 **Merged pull requests:**
 
@@ -105,10 +120,13 @@
 ## [v0.12](https://github.com/chef/chef-provisioning-fog/tree/v0.12) (2015-01-27)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.11...v0.12)
 
+**Fixed bugs:**
+
+- Add winrm support to fog driver [\#28](https://github.com/chef/chef-provisioning-fog/issues/28)
+
 **Closed issues:**
 
 - IAM roles for provisioning unsupported [\#80](https://github.com/chef/chef-provisioning-fog/issues/80)
-- Add winrm support to fog driver [\#28](https://github.com/chef/chef-provisioning-fog/issues/28)
 
 **Merged pull requests:**
 
@@ -144,12 +162,9 @@
 
 **Fixed bugs:**
 
-- Be nicer when machine\_options\[:bootstrap\_options\] doesn't exist [\#38](https://github.com/chef/chef-provisioning-fog/issues/38)
-
-**Closed issues:**
-
 - Default fog instance [\#45](https://github.com/chef/chef-provisioning-fog/issues/45)
 - add public ip / dns to node data \(ec2\) [\#39](https://github.com/chef/chef-provisioning-fog/issues/39)
+- Be nicer when machine\_options\[:bootstrap\_options\] doesn't exist [\#38](https://github.com/chef/chef-provisioning-fog/issues/38)
 
 **Merged pull requests:**
 
