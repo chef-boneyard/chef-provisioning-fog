@@ -16,7 +16,7 @@ module FogDriver
 
       def bootstrap_options_for(action_handler, machine_spec, machine_options)
         bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
-        if bootstrap_options[:key_path]
+        if bootstrap_options[:key_path] || bootstrap_options[:key_name]
           bootstrap_options[:key_name] ||= File.basename(bootstrap_options[:key_path])
           # Verify that the provided key name and path are in line (or create the key pair if not!)
           driver = self
@@ -27,12 +27,12 @@ module FogDriver
             end
           end
         else
-          bootstrap_options[:key_name] = overwrite_default_key_willy_nilly(action_handler, machine_spec)
+          bootstrap_options[:key_name] ||= overwrite_default_key_willy_nilly(action_handler, machine_spec)
         end
 
         bootstrap_options[:tags]  = default_tags(machine_spec, bootstrap_options[:tags] || {})
 
-        if !bootstrap_options[:image_id]
+        if !bootstrap_options[:image_id] && !bootstrap_options[:image]
           if !bootstrap_options[:image_distribution] && !bootstrap_options[:image_name]
             bootstrap_options[:image_distribution] = 'CentOS'
             bootstrap_options[:image_name] = '6.5 x64'
@@ -45,9 +45,9 @@ module FogDriver
           if images.empty?
             raise "No images on DigitalOcean with distribution #{bootstrap_options[:image_distribution].inspect} and name #{bootstrap_options[:image_name].inspect}"
           end
-          bootstrap_options[:image_id] = images.first.id
+          bootstrap_options[:image] = images.first.id
         end
-        if !bootstrap_options[:flavor_id]
+        if !bootstrap_options[:flavor_id] && !bootstrap_options[:size]
           bootstrap_options[:flavor_name] ||= '512MB'
           flavors = compute.flavors.select do |f|
             f.slug.downcase == bootstrap_options[:flavor_name].downcase
@@ -55,7 +55,7 @@ module FogDriver
           if flavors.empty?
             raise "Could not find flavor named '#{bootstrap_options[:flavor_name]}' on #{driver_url}"
           end
-          bootstrap_options[:flavor] = flavors.first.slug
+          bootstrap_options[:size] = flavors.first.slug
         end
         if !bootstrap_options[:region]
           bootstrap_options[:region_name] ||= 'San Francisco 1'
@@ -70,19 +70,19 @@ module FogDriver
           raise "Could not find key named '#{bootstrap_options[:key_name]}' on #{driver_url}"
         end
         found_key = keys.first
-        bootstrap_options[:ssh_key_ids] ||= [ found_key.id ]
+        bootstrap_options[:ssh_keys] ||= [ found_key.id ]
 
         # You don't get to specify name yourself
         bootstrap_options[:name] = machine_spec.name
-
+        bootstrap_options[:version] ||= :v2
         bootstrap_options
       end
 
       def destroy_machine(action_handler, machine_spec, machine_options)
         server = server_for(machine_spec)
-        if server && server.state != 'archive'
+        if server && server.status != 'archive'
           action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
-            server.destroy
+            server.delete
           end
         end
         machine_spec.location = nil
