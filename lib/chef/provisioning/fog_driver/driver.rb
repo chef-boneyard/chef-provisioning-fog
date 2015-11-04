@@ -633,6 +633,7 @@ module FogDriver
     # @param [Chef::Provisioning::Machine] server a Machine representing the server
     # @return [String] PEM-encoded private key
     def private_key_for(machine_spec, machine_options, server)
+      bootstrap_options = machine_options[:bootstrap_options] || {}
       if server.respond_to?(:private_key) && server.private_key
          server.private_key
       elsif server.respond_to?(:key_name) && server.key_name
@@ -647,13 +648,14 @@ module FogDriver
           raise "Server was created with key name '#{machine_spec.reference['key_name']}', but the corresponding private key was not found locally.  Check if the key is in Chef::Config.private_key_paths: #{Chef::Config.private_key_paths.join(', ')}"
         end
         key
-      elsif machine_options[:bootstrap_options][:key_path]
-        IO.read(machine_options[:bootstrap_options][:key_path])
-      elsif machine_options[:bootstrap_options][:key_name]
-        get_private_key(machine_options[:bootstrap_options][:key_name])
+      elsif bootstrap_options[:key_path]
+        IO.read(bootstrap_options[:key_path])
+      elsif bootstrap_options[:key_name]
+        get_private_key(bootstrap_options[:key_name])
       else
         # TODO make a way to suggest other keys to try ...
-        raise "No key found to connect to #{machine_spec.name} (#{machine_spec.reference.inspect})!"
+        raise "No key found to connect to #{machine_spec.name} (#{machine_spec.reference.inspect})" \
+          " : machine_options -> (#{machine_options.inspect})!"
       end
     end
 
