@@ -36,7 +36,7 @@ module FogDriver
         remote_host = if machine_spec.location['use_private_ip_for_ssh']
                         server.private_ip_address
                       elsif !server.public_ip_address
-                        Chef::Log.warn("Server #{machine_spec.name} has no public ip address.  Using private ip '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
+                        Chef::Log.warn("Server #{machine_spec.name} has no public IP address.  Using private IP '#{server.private_ip_address}'.  Set driver option 'use_private_ip_for_ssh' => true if this will always be the case ...")
                         server.private_ip_address
                       elsif server.public_ip_address
                         server.public_ip_address
@@ -349,7 +349,7 @@ module FogDriver
               id = $1
               new_compute_options[:region] = $3
             else
-              Chef::Log.warn("Old-style AWS URL #{id} from an early beta of chef-metal (before 0.11-final) found. If you have servers in multiple regions on this account, you may see odd behavior like servers being recreated. To fix, edit any nodes with attribute chef_provisioning.location.driver_url to include the region like so: fog:AWS:#{id}:<region> (e.g. us-east-1)")
+              Chef::Log.warn("Old-style AWS URL #{id} from an early beta of chef-provisioning (before chef-metal 0.11-final) found. If you have servers in multiple regions on this account, you may see odd behavior like servers being recreated. To fix, edit any nodes with attribute chef_provisioning.location.driver_url to include the region like so: fog:AWS:#{id}:<region> (e.g. us-east-1)")
             end
           else
             # Assume it is a profile name, and set that.
@@ -384,7 +384,7 @@ module FogDriver
       end
 
       def create_many_servers(num_servers, bootstrap_options, parallelizer)
-        # Create all the servers in one request if we have a version of fog that can do that
+        # Create all the servers in one request if we have a version of Fog that can do that
         if compute.servers.respond_to?(:create_many)
           servers = compute.servers.create_many(num_servers, num_servers, bootstrap_options)
           if block_given?

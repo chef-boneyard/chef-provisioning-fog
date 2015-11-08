@@ -51,11 +51,17 @@ class Chef
               clean_bootstrap_options = Marshal.load(Marshal.dump(bootstrap_options)) # Prevent destructive operations on bootstrap_options.
               vm=nil
               begin
-                instantiate(clean_bootstrap_options)
+                begin
+                  instantiate(clean_bootstrap_options)
+                rescue Fog::Errors::Error => e
+                  unless e.minor_error_code == "DUPLICATE_NAME"
+                    # if it's already there, just use the current one
+                    raise e
+                  end
+                end
 
                 vapp = vdc.vapps.get_by_name(bootstrap_options[:name])
                 vm = vapp.vms.find {|v| v.vapp_name == bootstrap_options[:name]}
-
                 update_customization(clean_bootstrap_options, vm)
 
                 if bootstrap_options[:cpus]
@@ -92,13 +98,13 @@ class Chef
             # If it is stopping, wait for it to get out of "stopping" transition state before starting
             if server.status == 'stopping'
               action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
-              # Vcair
-              # NOTE: Vcair fog does not get server.status via http every time
+              # vCloud Air
+              # NOTE: vCloud Air Fog does not get server.status via http every time
               server.wait_for { server.reload ; server.status != 'stopping' }
               action_handler.report_progress "#{machine_spec.name} is now stopped"
             end
 
-            # NOTE: Vcair fog does not get server.status via http every time
+            # NOTE: vCloud Air Fog does not get server.status via http every time
             server.reload
 
             if server.status == 'off' or server.status != 'on'
@@ -149,8 +155,8 @@ class Chef
             end
 
             remote_host = nil
-            # Vcair networking is funky
-            #if machine_options[:use_private_ip_for_ssh] # Vcair probably needs private ip for now
+            # vCloud Air networking is funky
+            #if machine_options[:use_private_ip_for_ssh] # vCloud Air probably needs private ip for now
             if server.ip_address
               remote_host = server.ip_address
             else
@@ -175,7 +181,7 @@ class Chef
             wait_until_ready(action_handler, machine_spec, machine_options, server)
 
             # Attach/detach floating IPs if necessary
-            # Vcair is funky for network.  vm has to be powered off or you get this error:
+            # vCloud Air is funky for network.  VM has to be powered off or you get this error:
             #    Primary NIC cannot be changed when the VM is not in Powered-off state
             # See code in update_network()
             #DISABLED: converge_floating_ips(action_handler, machine_spec, machine_options, server)
@@ -247,35 +253,61 @@ class Chef
             end
           end
 
+          # Create a WinRM transport for a vCloud Air Vapp VM instance
+          # @param [Hash] machine_spec Machine-spec hash
+          # @param [Hash] machine_options Machine options (from the recipe)
+          # @param [Fog::Compute::Server] server A Fog mapping to the AWS instance
+          # @return [ChefMetal::Transport::WinRM] A WinRM Transport object to talk to the server
+          def create_winrm_transport(machine_spec, machine_options, server)
+            port = machine_spec.location['winrm_port'] || 5985
+            endpoint = "http://#{server.ip_address}:#{port}/wsman"
+            type = :plaintext
+
+            # Use basic HTTP auth - this is required for the WinRM setup we
+            # are using
+            # TODO: Improve that and support different users
+            options = {
+              :user => 'Administrator',
+              :pass => machine_options[:winrm_options][:password],
+              :disable_sspi => true,
+              :basic_auth_only => true
+            }
+            Chef::Provisioning::Transport::WinRM.new(endpoint, type, options, {})
+          end
+
           def update_customization(bootstrap_options, server)
             ## Initialization before first power on.
-            c=server.customization
+            custom=server.customization
 
             if bootstrap_options[:customization_script]
-              c.script = open(bootstrap_options[:customization_script]).read
+              custom.script = open(bootstrap_options[:customization_script]).read
             end
 
-            # TODO: check machine type and pick accordingly for Chef provisioning
-            # password = case config_value(:bootstrap_protocol)
-            #            when 'winrm'
-            #              config_value(:winrm_password)
-            #            when 'ssh'
-            #              config_value(:ssh_password)
-            #            end
+            bootstrap_options[:protocol] ||= case server.operating_system
+                                         when /Windows/
+                                           'winrm'
+                                         else
+                                           'ssh'
+                                         end
+            password = case bootstrap_options[:protocol]
+                       when 'ssh'
+                         bootstrap_options[:ssh_options][:password]
+                       when 'winrm'
+                         bootstrap_options[:winrm_options][:password]
+                       end
 
-            password = bootstrap_options[:ssh_options][:password]
             if password
-              c.admin_password =  password 
-              c.admin_password_auto = false
-              c.reset_password_required = false
+              custom.admin_password =  password
+              custom.admin_password_auto = false
+              custom.reset_password_required = false
             else
               # Password will be autogenerated
-              c.admin_password_auto=true
+              custom.admin_password_auto=true
               # API will force password resets when auto is enabled
-              c.reset_password_required = true
+              custom.reset_password_required = true
             end
 
-            # TODO: Add support for admin_auto_logon to fog
+            # TODO: Add support for admin_auto_logon to Fog
             # c.admin_auto_logon_count = 100
             # c.admin_auto_logon_enabled = true
 
@@ -283,22 +315,23 @@ class Chef
             # Windows can only handle 15 character hostnames
             # TODO: only change name for Windows!
             #c.computer_name = config_value(:chef_node_name).gsub(/\W/,"-").slice(0..14)
-            c.computer_name = bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
-            c.enabled = true
-            c.save
+            custom.computer_name = bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
+            custom.enabled = true
+            custom.save
           end
 
-          ## Vcair
+          ## vCloud Air
           ## TODO: make work with floating_ip junk currently used
-          ## NOTE: current vcair networking changes require VM to be powered off
+          ## NOTE: current vCloud Air networking changes require VM to be powered off
           def update_network(bootstrap_options, vapp, vm)
             ## TODO: allow user to specify network to connect to (see above net used)
             # Define network connection for vm based on existing routed network
 
-            # Vcair inlining vapp() and vm()
+            # vCloud Air inlining vapp() and vm()
             #vapp = vdc.vapps.get_by_name(bootstrap_options[:name])
             #vm = vapp.vms.find {|v| v.vapp_name == bootstrap_options[:name]}
-            nc = vapp.network_config.find { |n| n if n[:networkName].match(net.name) }
+            return if vm.ip_address != "" # return if ip address is set, as this isn't a new VM
+            nc = vapp.network_config.find { |netc| netc if netc[:networkName].match(net.name) }
             networks_config = [nc]
             section = {PrimaryNetworkConnectionIndex: 0}
             section[:NetworkConnection] = networks_config.compact.each_with_index.map do |network, i|
@@ -324,7 +357,7 @@ class Chef
             ## attach the network to the vm
             nc_task = compute.put_network_connection_system_section_vapp(
               vm.id,section).body
-              compute.process_task(nc_task)
+            compute.process_task(nc_task)
           end
 
           def bootstrap_options_for(action_handler, machine_spec, machine_options)
@@ -339,7 +372,7 @@ class Chef
 
           def destroy_machine(action_handler, machine_spec, machine_options)
             server = server_for(machine_spec)
-            if server && server.status != 'archive' # TODO: does Vcair do archive?
+            if server && server.status != 'archive' # TODO: does vCloud Air do archive?
               action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
                 #NOTE: currently doing 1 vm for 1 vapp
                 vapp = vdc.vapps.get_by_name(machine_spec.name)
