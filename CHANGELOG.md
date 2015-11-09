@@ -1,10 +1,18 @@
 # Change Log
 
-## [0.15.2](https://github.com/chef/chef-provisioning-fog/tree/0.15.2) (2015-10-29)
-[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.1...0.15.2)
+## [0.15.3](https://github.com/chef/chef-provisioning-fog/tree/0.15.3) (2015-11-09)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.2...0.15.3)
+
+**Closed issues:**
+
+- NameError: uninitialized constant Chef::Provisioning::FogDriver::Driver::Cheff [\#142](https://github.com/chef/chef-provisioning-fog/issues/142)
+
+## [v0.15.2](https://github.com/chef/chef-provisioning-fog/tree/v0.15.2) (2015-10-29)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.1...v0.15.2)
 
 **Merged pull requests:**
 
+- 0.15.2 release [\#138](https://github.com/chef/chef-provisioning-fog/pull/138) ([jjasghar](https://github.com/jjasghar))
 - Revert "Fix for \#106" [\#137](https://github.com/chef/chef-provisioning-fog/pull/137) ([kri5](https://github.com/kri5))
 
 ## [v0.15.1](https://github.com/chef/chef-provisioning-fog/tree/v0.15.1) (2015-10-21)
