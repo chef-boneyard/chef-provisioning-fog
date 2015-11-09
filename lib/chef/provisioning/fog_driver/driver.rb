@@ -340,7 +340,7 @@ module FogDriver
             # TODO 2.0 We no longer support `use_private_ip_for_ssh`, only `transport_address_location
             if machine_options[:use_private_ip_for_ssh]
               unless @transport_address_location_warned
-                Cheff::Log.warn("The machine option ':use_private_ip_for_ssh' has been deprecated, use ':transport_address_location'")
+                Chef::Log.warn("The machine option ':use_private_ip_for_ssh' has been deprecated, use ':transport_address_location'")
                 @transport_address_location_warned = true
               end
               machine_options = Cheffish::MergedConfig.new(machine_options, {:transport_address_location => :private_ip})
