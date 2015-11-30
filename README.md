@@ -21,7 +21,7 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ### DigitalOcean
 
-If you are on DigitalOcean and using the `tugboat` gem, you can do this:
+If you are on DigitalOcean and using the [`tugboat` gem](https://github.com/pearkes/tugboat), you can do this:
 
 ```
 $ gem install chef-provisioning-fog
