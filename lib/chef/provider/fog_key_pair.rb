@@ -216,7 +216,7 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       current_key_pair = compute.ssh_keys.select { |key| key.name == new_resource.name }.first
       if current_key_pair
         @current_id = current_key_pair.id
-        @current_fingerprint = current_key_pair ? compute.ssh_keys.get(@current_id).ssh_pub_key : nil
+        @current_fingerprint = current_key_pair ? compute.ssh_keys.get(@current_id).public_key : nil
       else
         current_resource.action :delete
       end
