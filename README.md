@@ -21,17 +21,45 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ### DigitalOcean
 
-If you are on DigitalOcean and using the `tugboat` gem, you can do this:
+If you are on DigitalOcean you need to do set these up:
+
+You need to add your token to the `knife.rb`:
 
 ```
-$ gem install chef-provisioning-fog
-$ export CHEF_DRIVER=fog:DigitalOcean
+knife[:digital_ocean_access_token] = "21c540388f72cffc588aba42e550THIS_IS_FAKE91537f22f4870d5fbceeeda15f0a55"
+driver_options compute_options: {digitalocean_token: "21c540388f72cffc588aba42THIS_IS_FAKE1537f22f4870d5faaabcda15f0a55"}
+```
+
+Then an example `simple.rb`
+
+```ruby
+Require 'chef/provisioning'
+
+with_driver 'fog:DigitalOcean'
+
+add_machine_options bootstrap_options: {
+  image_distribution: 'Ubuntu',
+  image_name: '15.04 x64',
+  flavor_name: '512MB',
+  region_name: 'London 1',
+  key_name: 'private'
+}
+
+
+machine 'mario' do
+  tag 'mydb_master'
+end
+```
+
+Then you should be able to run the following to spin up the machine in Digital Ocean.
+
+```
 $ chef-client -z simple.rb
 ```
 
 ### OpenStack
 
-You'll need to update your `knife.rb` to work with this also:
+You'll need to update your `knife.rb` to work with this:
 
 ```ruby
 driver 'fog:OpenStack'
