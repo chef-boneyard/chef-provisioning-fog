@@ -28,7 +28,7 @@ You need to add your token to the `knife.rb`:
 ```
 knife[:digital_ocean_access_token] = "21c540388f72cffc588aba42e550THIS_IS_FAKE91537f22f4870d5fbceeeda15f0a55"
 driver_options compute_options: {digitalocean_token: "21c540388f72cffc588aba42THIS_IS_FAKE1537f22f4870d5faaabcda15f0a55"}
-cache_path               File.expand_path(File.dirname(__FILE__))  # You may need this may not.
+cache_path               File.expand_path(File.dirname(__FILE__))  # You may need this, or you may not.
 ```
 
 Then an example `simple.rb`
