@@ -27,7 +27,7 @@ task :sanity do
 end
 
 desc 'Does a patch bump to the gem'
-task :minor do
+task :patch do
   Bump::Bump.run("patch")
 end
 
