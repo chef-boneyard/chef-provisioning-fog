@@ -7,8 +7,8 @@ task :spec do
   require File.expand_path('spec/run')
 end
 
-desc 'Sanity Checks and releases gem to rubygems'
-task :sanity do
+desc 'Bump minor version, create changelog, tag, push to github, and publish to rubygems.'
+task :publish do
   # Bumps the version.rb patch version (there are gems that can handle this for us)
   Rake::Task[:minor].invoke
 
