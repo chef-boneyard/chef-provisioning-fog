@@ -8,4 +8,6 @@ group :development do
   gem 'guard'
   gem 'guard-rspec'
   gem 'rb-readline'
+  gem 'bump'
+  gem 'github_changelog_generator'
 end
