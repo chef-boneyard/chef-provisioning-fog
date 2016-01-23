@@ -14,6 +14,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'chef-provisioning', '~> 1.0'
   s.add_dependency 'fog'
+  s.add_dependency 'fog-softlayer' , '>= 1.0.4.sl5', '< 2'
   s.add_dependency 'retryable'
 
   s.add_development_dependency 'rspec'

@@ -307,9 +307,30 @@ module FogDriver
           Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
         end
 
+        machine_spec.reference ||= {}
+        machine_spec.reference.update(
+            'driver_url' => driver_url,
+            'driver_version' => FogDriver::VERSION,
+            'creator' => creator,
+            'allocated_at' => Time.now.to_i
+        )
+
         bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
+        machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
         by_bootstrap_options[bootstrap_options] ||= []
         by_bootstrap_options[bootstrap_options] << machine_spec
+
+        # TODO 2.0 We no longer support `use_private_ip_for_ssh`, only `transport_address_location
+        if machine_options[:use_private_ip_for_ssh]
+            unless @transport_address_location_warned
+                Chef::Log.warn("The machine option ':use_private_ip_for_ssh' has been deprecated, use ':transport_address_location'")
+                @transport_address_location_warned = true
+            end
+            machine_options = Cheffish::MergedConfig.new(machine_options, {:transport_address_location => :private_ip})
+        end
+        %w(is_windows ssh_username sudo transport_address_location ssh_gateway).each do |key|
+            machine_spec.reference[key] = machine_options[key.to_sym] if machine_options[key.to_sym]
+        end
       end
 
       # Create the servers in parallel
@@ -329,25 +350,8 @@ module FogDriver
             # Assign each one to a machine spec
             machine_spec = machine_specs.pop
             machine_options = specs_and_options[machine_spec]
-            machine_spec.reference = {
-              'driver_url' => driver_url,
-              'driver_version' => FogDriver::VERSION,
-              'server_id' => server.id,
-              'creator' => creator,
-              'allocated_at' => Time.now.to_i
-            }
-            machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
-            # TODO 2.0 We no longer support `use_private_ip_for_ssh`, only `transport_address_location
-            if machine_options[:use_private_ip_for_ssh]
-              unless @transport_address_location_warned
-                Chef::Log.warn("The machine option ':use_private_ip_for_ssh' has been deprecated, use ':transport_address_location'")
-                @transport_address_location_warned = true
-              end
-              machine_options = Cheffish::MergedConfig.new(machine_options, {:transport_address_location => :private_ip})
-            end
-            %w(is_windows ssh_username sudo transport_address_location ssh_gateway).each do |key|
-              machine_spec.reference[key] = machine_options[key.to_sym] if machine_options[key.to_sym]
-            end
+            machine_spec.reference['server_id'] = server.id
+
             action_handler.performed_action "machine #{machine_spec.name} created as #{server.id} on #{driver_url}"
 
             yield machine_spec, server if block_given?
