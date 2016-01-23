@@ -146,12 +146,15 @@ POSTINST_UPDATE_URL='#{update_url}'
 POSTINST_REQUESTED_URL='#{bootstrap_options[:postInstallScriptUri]}'
 SHELL
 
+                encoded_info = Base64.strict_encode64(post_install_info)
+                Chef::Log.debug("encoded info: #{encoded_info.inspect}")
+
                 res = request(
                   server,
                   "#{server.id}/setUserMetadata",
                   :http_method => 'POST', :body => [
                     [
-                      Base64.encode64(post_install_info)
+                        encoded_info
                     ]
                   ]
                 )

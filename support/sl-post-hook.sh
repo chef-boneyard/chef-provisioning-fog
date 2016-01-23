@@ -2,7 +2,7 @@
 
 set -o errexit
 
-POST_SCRIPT_DONE="\"post-script-done\""
+POST_SCRIPT_DONE="post-script-done"
 
 if [ -e /usr/bin/apt-get ]; then
     apt-get update -y
@@ -12,7 +12,7 @@ fi
 
 curl_body=$(curl https://api.service.softlayer.com/rest/v3/SoftLayer_Resource_Metadata/getUserMetadata)
 
-if [ "$curl_body" = $POST_SCRIPT_DONE ]; then
+if [ "$curl_body" = "\"$POST_SCRIPT_DONE\"" ]; then
 	echo "already run"
 	exit 0
 fi
@@ -27,8 +27,8 @@ fi
 
 # the response body is enclosed in double quotes which need to be removed
 # before decoding
-eval "meta=$curl_body"
-conf=$(echo "$meta" | base64 --decode)
+meta=$(echo "$curl_body" | tr -d '"')
+conf=$(echo -n "$meta" | base64 --decode)
 
 # chef-provisioning-fog SoftLayer driver provides the variables:
 #   POSTINST_REQUESTED_URL
