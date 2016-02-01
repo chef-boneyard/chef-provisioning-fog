@@ -92,7 +92,6 @@ module FogDriver
 
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
-        #binding.pry
         new_compute_options[:provider] = provider
         new_config = { :driver_options => { :compute_options => new_compute_options }}
         new_defaults = {
