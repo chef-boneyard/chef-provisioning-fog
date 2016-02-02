@@ -19,15 +19,18 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ## chef-provisioning-fog Usage and Examples
 
+**A note about key pairs** - The key name used in `fog_key_pair` must be the same as the filename of the local key to be used. If the key does not exist in one of `private_key_paths` (which you can set in knife.rb or in a client.rb) it will be created.
+
 ### DigitalOcean
 
-If you are on DigitalOcean and using the [`tugboat` gem](https://github.com/pearkes/tugboat), you can do this:
+Update your knife.rb to contain your DigitalOcean API token and the driver
 
+```ruby
+driver 'fog:DigitalOcean'
+driver_options compute_options: { digitalocean_token: 'token' }
 ```
-$ gem install chef-provisioning-fog
-$ export CHEF_DRIVER=fog:DigitalOcean
-$ chef-client -z simple.rb
-```
+
+For a full example see `examples/digitalocean/simple.rb`
 
 ### OpenStack
 
