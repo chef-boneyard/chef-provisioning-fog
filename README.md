@@ -30,7 +30,7 @@ driver 'fog:DigitalOcean'
 driver_options compute_options: { digitalocean_token: 'token' }
 ```
 
-For a full example see [examples/openstack/simple.rb](examples/openstack/simple.rb).
+For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
 
 ### OpenStack
 
