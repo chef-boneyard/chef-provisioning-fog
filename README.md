@@ -23,7 +23,11 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ### DigitalOcean
 
+<<<<<<< HEAD
 Update your knife.rb to contain your DigitalOcean API token and the driver
+=======
+If you are on DigitalOcean and using the [`tugboat` gem](https://github.com/pearkes/tugboat), you can do this:
+>>>>>>> upstream/master
 
 ```ruby
 driver 'fog:DigitalOcean'
@@ -205,6 +209,58 @@ Drivers handle the real work of getting those abstract definitions into real, ph
 The driver API is separated out so that new drivers can be made with minimal effort (without having to rewrite ssh, tunneling, bootstrapping, and OS support).  But to the user, they appear as a single thing, so that the machine acquisition can use its smarts to autodetect the other bits (transports, OS's, etc.).
 
 Drivers save their data in the Chef node itself, so that they will be accessible to everyone who is using the Chef server to manage the nodes.
+
+### Tuning Timeouts
+
+`chef-provisioning-fog` interacts with your cloud provider's endpoint.  Most of
+the time, default timeouts for the following would be sufficient.
+
+#### Fog `connection_options`
+
+Modify the defaults if your Fog endpoint takes awhile to send/receive API requests.  Normally, if you see `Excon` timeouts you should tune these [parameters](https://github.com/excon/excon/blob/75d85a7e304cbd1c9dc3c7c40c6de5a995f5cd04/lib/excon/constants.rb#L110-L139).
+
+```ruby
+with_driver 'fog:foo',
+  :compute_options => {
+    :connection_options => {
+      # set connection to persist (default is false)
+      :persistent => true,
+      # set longer connect_timeout (default is 60 seconds)
+      :connect_timeout => 360,
+      # set longer read_timeout (default is 60 seconds)
+      :read_timeout => 360,
+      # set longer write_timeout (default is 60 seconds)
+      :write_timeout => 360,
+    }
+  }
+```
+#### `machine_option` timeouts
+
+Modify these timeouts if you need Chef to wait a bit of time to allow for the machine to be ready.
+
+```ruby
+with_machine_options({
+  # set longer to wait for the instance to boot to ssh (defaults to 180)
+  :create_timeout => 360,
+  # set longer to wait for the instance to start (defaults to 180)
+  :start_timeout => 360,
+  # set longer to wait for ssh to be available if the instance is detected up (defaults to 20)
+  :ssh_timeout => 360
+})
+```
+
+#### Chef Client `convergence_options`
+
+Modify this if your chef client convergences take awhile.
+
+```ruby
+with_machine_options({
+  :convergence_options => {
+    # set longer if you need more time to converge (default: 2 hours)
+    :chef_client_timeout => 120*60
+  }
+})
+```
 
 [gem]: https://rubygems.org/gems/chef-provisioning-fog
 [travis]: https://travis-ci.org/chef/chef-provisioning-fog
