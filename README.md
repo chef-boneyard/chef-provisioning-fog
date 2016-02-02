@@ -30,7 +30,7 @@ driver 'fog:DigitalOcean'
 driver_options compute_options: { digitalocean_token: 'token' }
 ```
 
-For a full example see `examples/digitalocean/simple.rb`
+For a full example see [examples/openstack/simple.rb](examples/openstack/simple.rb).
 
 ### OpenStack
 
@@ -44,56 +44,7 @@ driver_options :compute_options => { :openstack_auth_url => 'http://YOUROPENSTAC
                                      :openstack_tenant   => 'YOURTENANTIDNAME' }
 ```
 
-How to install the gem, and run a `simple.rb`.
-
-```
-$ gem install chef-provisioning-fog
-$ chef-client -z simple.rb
-```
-
-And inside your recipe, you'll need something like the following. This specifically will create 3 dev-webservers, and 1 qa-webserver.
-
-```ruby
-require 'chef/provisioning'
-
-with_machine_options({
-                       :bootstrap_options => {
-                         :flavor_ref  => 3,
-                         :image_ref => 'my-fake-ubuntu-image-0c1f2c38432b',
-                         :nics => [{ :net_id => 'my-tenantnetwork-id-89afddb9db6c'}],
-                         :key_name => 'mykeyname',
-                         :floating_ip_pool => 'ext-net'
-                         },
-                       :ssh_username => 'ubuntu'
-                     })
-
-machine_batch 'dev' do
-  1.upto(3) do |n|
-    instance = "#{name}-webserver-#{n}"
-    machine instance do
-      role 'webserver'
-      tag "#{name}-webserver-#{n}"
-      converge true
-    end
-  end
-end
-
-machine 'qa-webserver' do
-  tag 'qabox'
-  machine_options({
-                    bootstrap_options: {
-                      :flavor_ref  => 3,
-                      :nics => [{ :net_id => 'my-tenantnetwork-id-89afddb9db6c'}],
-                      :key_name => 'jdizzle',
-                      :image_ref => 'my-centos-image-2b0b6bb7b0c12b0b6bb7b0c1',
-                      :floating_ip_pool => 'ext-net'
-                      },
-                    :ssh_username => 'centos'
-                  })
-  role 'webserver'
-  converge true
-end
-```
+For a full example see [examples/openstack/simple.rb](examples/openstack/simple.rb).
 
 ### Rackspace
 
@@ -109,42 +60,7 @@ You must configure some credentials and region in a `knife.rb` file like so:
   }
 ```
 
-Ensure your Gemfile has (or install these with `gem install`):
-```
-gem 'chef-provisioning'
-gem 'chef-provisioning-fog'
-```
-
-Then, here's an example of making a keypair and booting a server:
-```ruby
-require 'chef/provisioning'
-require 'chef/provisioning/fog_driver/recipe_dsl'
-
-# create/update a keypair at Rackspace's API endpoint, so we can use it later
-fog_key_pair 'example_id_rsa'
-
-# Options to bootstrap 2gb General instance with CentOS 6 (PVHVM)
-with_machine_options({
-  :bootstrap_options => {
-    :flavor_id => 'general1-2', # required
-    :image_id  => 'fabe045f-43f8-4991-9e6c-5cabd617538c', # required
-    :key_name  => 'example_id_rsa',
-
-    # optional attributes:
-    #   :disk_config, :metadata, :personality, :config_drive,
-    #   :boot_volume_id, :boot_image_id
-    #
-    # ** :image_id must be "" if :boot_volume_id or :boot_image_id is provided
-  }
-})
-
-machine 'mario' do
-  tag 'itsa_me'
-  converge true
-end
-```
-
-If you run into SSH key trouble, [see this issue](https://github.com/chef/chef-provisioning-fog/issues/130) for some background of the chef-provisioning-fog driver and the fog library's different ways of bootstraping a server at Rackspace.
+For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
 
 ### Cleaning up
 
