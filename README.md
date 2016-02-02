@@ -23,11 +23,7 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ### DigitalOcean
 
-<<<<<<< HEAD
 Update your knife.rb to contain your DigitalOcean API token and the driver
-=======
-If you are on DigitalOcean and using the [`tugboat` gem](https://github.com/pearkes/tugboat), you can do this:
->>>>>>> upstream/master
 
 ```ruby
 driver 'fog:DigitalOcean'
