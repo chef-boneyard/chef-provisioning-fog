@@ -2,3 +2,5 @@ pkg/
 *.lock
 .*~
 tags
+.bundle/
+bin/

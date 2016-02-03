@@ -1,7 +1,7 @@
 # Change Log
 
-## [0.16.0](https://github.com/chef/chef-provisioning-fog/tree/0.16.0) (2016-02-02)
-[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.3...0.16.0)
+## [v0.16.0](https://github.com/chef/chef-provisioning-fog/tree/v0.16.0) (2016-02-03)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.3...v0.16.0)
 
 **Implemented enhancements:**
 
@@ -18,6 +18,7 @@
 
 **Merged pull requests:**
 
+- v0.16.0 prep work [\#157](https://github.com/chef/chef-provisioning-fog/pull/157) ([jjasghar](https://github.com/jjasghar))
 - Updating Docs for better organization :\) [\#156](https://github.com/chef/chef-provisioning-fog/pull/156) ([jjasghar](https://github.com/jjasghar))
 - Digital Ocean API v2 redux [\#155](https://github.com/chef/chef-provisioning-fog/pull/155) ([Afterglow](https://github.com/Afterglow))
 - Add a section on how to update timing correctly. [\#146](https://github.com/chef/chef-provisioning-fog/pull/146) ([bdangit](https://github.com/bdangit))
