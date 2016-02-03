@@ -12,12 +12,18 @@ Gem::Specification.new do |s|
   s.email = ['jkeiser@getchef.com', 'hh@vulk.co', 't@vulk.co', 'w@vulk.co']
   s.homepage = 'https://github.com/opscode/chef-provisioning-fog'
 
+  s.add_dependnecy 'chef'
   s.add_dependency 'chef-provisioning', '~> 1.0'
   s.add_dependency 'fog', '>= 1.35.0'
   s.add_dependency 'retryable'
 
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rake'
+  s.add_development_dependency 'guard'
+  s.add_development_dependency 'guard-rspec'
+  s.add_development_dependency 'rb-readline'
+  s.add_development_dependency 'bump'
+  s.add_development_dependency 'github_changelog_generator'
 
   s.bindir       = "bin"
   s.executables  = %w( )
