@@ -1,7 +1,30 @@
 # Change Log
 
-## [0.15.3](https://github.com/chef/chef-provisioning-fog/tree/0.15.3) (2015-11-09)
-[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.2...0.15.3)
+## [0.16.0](https://github.com/chef/chef-provisioning-fog/tree/0.16.0) (2016-02-02)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.3...0.16.0)
+
+**Implemented enhancements:**
+
+- HOWTO or other doc for working with Fog-based providers \(SoftLayer\) [\#148](https://github.com/chef/chef-provisioning-fog/issues/148)
+
+**Fixed bugs:**
+
+- raise exception when bootstrap options doesn't exist in machine options [\#141](https://github.com/chef/chef-provisioning-fog/pull/141) ([chilicheech](https://github.com/chilicheech))
+
+**Closed issues:**
+
+- \[enhancement\]\[openstack\] abstrackt usage of image\_id to ref or id [\#104](https://github.com/chef/chef-provisioning-fog/issues/104)
+- Digital Ocean config select\(ions\) should fail gracefully [\#90](https://github.com/chef/chef-provisioning-fog/issues/90)
+
+**Merged pull requests:**
+
+- Updating Docs for better organization :\) [\#156](https://github.com/chef/chef-provisioning-fog/pull/156) ([jjasghar](https://github.com/jjasghar))
+- Digital Ocean API v2 redux [\#155](https://github.com/chef/chef-provisioning-fog/pull/155) ([Afterglow](https://github.com/Afterglow))
+- Add a section on how to update timing correctly. [\#146](https://github.com/chef/chef-provisioning-fog/pull/146) ([bdangit](https://github.com/bdangit))
+- Added rubygems deployment [\#144](https://github.com/chef/chef-provisioning-fog/pull/144) ([jjasghar](https://github.com/jjasghar))
+
+## [v0.15.3](https://github.com/chef/chef-provisioning-fog/tree/v0.15.3) (2015-11-09)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.2...v0.15.3)
 
 **Closed issues:**
 
