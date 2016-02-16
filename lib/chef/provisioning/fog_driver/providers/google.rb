@@ -35,6 +35,13 @@ class Chef
             bootstrap_options[:zone_name] ||= 'europe-west1-b'
             bootstrap_options[:name] ||= machine_spec.name
             bootstrap_options[:disk_size] ||= 10
+            disk_type_prefix = "https://www.googleapis.com/compute/v1/projects/#{compute_options['google_project']}/zones/#{bootstrap_options[:zone_name]}/diskTypes/"
+            standard_disk_type = disk_type_prefix + 'pd-standard'
+            if bootstrap_options[:disk_type].nil?
+              bootstrap_options[:disk_type] = standard_disk_type
+            else
+              bootstrap_options[:disk_type] = disk_type_prefix + bootstrap_options[:disk_type]
+            end
 
             if bootstrap_options[:disks].nil?
               # create the persistent boot disk
@@ -43,6 +50,7 @@ class Chef
                 :size_gb => bootstrap_options[:disk_size],
                 :zone_name => bootstrap_options[:zone_name],
                 :source_image => bootstrap_options[:image_name],
+                :type => bootstrap_options[:disk_type],
               }
 
               disk = compute.disks.create(disk_defaults)
