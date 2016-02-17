@@ -8,12 +8,12 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = ['README.md', 'LICENSE' ]
   s.summary = 'Driver for creating Fog instances in Chef Provisioning.'
   s.description = s.summary
-  s.authors     = ['John Keiser', "Chris McClimans", "Taylor Carpenter", "Wavell Watson"]
-  s.email = ['jkeiser@getchef.com', 'hh@vulk.co', 't@vulk.co', 'w@vulk.co']
-  s.homepage = 'https://github.com/opscode/chef-provisioning-fog'
+  s.authors     = ['John Keiser', "Chris McClimans", "Taylor Carpenter", "Wavell Watson", "JJ Asghar"]
+  s.email = ['jkeiser@getchef.com', 'hh@vulk.co', 't@vulk.co', 'w@vulk.co', 'jj@chef.io']
+  s.homepage = 'https://github.com/chef/chef-provisioning-fog'
 
   s.add_dependency 'chef-provisioning', '~> 1.0'
-  s.add_dependency 'fog', '>= 1.35.0'
+  s.add_dependency 'fog', '>= 1.38.0'
   s.add_dependency 'retryable'
 
   s.add_development_dependency 'rspec'
