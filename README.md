@@ -19,7 +19,7 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ## chef-provisioning-fog Usage and Examples
 
-**A note about key pairs** - The key name used in `fog_key_pair` must be the same as the filename of the local key to be used. If the key does not exist in one of `private_key_paths` (which you can set in knife.rb or in a client.rb) it will be created.
+**A note about key pairs** - The key name used in `fog_key_pair` must be the same as the filename of the local key to be used. If the key does not exist in one of `private_key_paths` (which you can set in `knife.rb` or in a `client.rb`) it will be created.
 
 ### DigitalOcean
 
@@ -70,7 +70,7 @@ You'll need to update your `knife.rb` to work with this also:
 driver 'fog:Google'
 driver_options :compute_options => { :provider => 'google',
                                      :google_project => 'YOURPROJECTID',
-                                     :google_client_mail => 'YOURSERVICEACCOUNTEMAIL',
+                                     :google_client_email => 'YOURSERVICEACCOUNTEMAIL',
                                      :google_key_location => 'YOURP12KEYFILEPATH' }
 ```
 
