@@ -62,6 +62,20 @@ You must configure some credentials and region in a `knife.rb` file like so:
 
 For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
 
+### Google Compute Engine
+
+You'll need to update your `knife.rb` to work with this also:
+
+```ruby
+driver 'fog:Goggle'
+driver_options :compute_options => { :provider => 'google',
+                                     :google_project => 'YOURPROJECTID',
+                                     :google_client_mail => 'YOURSERVICEACCOUNTEMAIL',
+                                     :google_key_location => 'YOURP12KEYFILEPATH' }
+```
+
+For a full example see [examples/google/simple.rb](examples/google/simple.rb).
+
 ### Cleaning up
 
 ```ruby
