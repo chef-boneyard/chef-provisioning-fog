@@ -74,6 +74,8 @@ driver_options :compute_options => { :provider => 'google',
                                      :google_key_location => 'YOURP12KEYFILEPATH' }
 ```
 
+In order to get the `YOURP12KEYFILEPATH` you need to set up a Service account. This is located at `Home > Permissions > Service Accounts` and you'll need to create a new one to get a new key. After that place it some place such as `~/.chef/` so chef-provisioning-fog can find it.
+
 For a full example see [examples/google/simple.rb](examples/google/simple.rb).
 
 ### Cleaning up
