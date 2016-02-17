@@ -67,7 +67,7 @@ For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.
 You'll need to update your `knife.rb` to work with this also:
 
 ```ruby
-driver 'fog:Goggle'
+driver 'fog:Google'
 driver_options :compute_options => { :provider => 'google',
                                      :google_project => 'YOURPROJECTID',
                                      :google_client_mail => 'YOURSERVICEACCOUNTEMAIL',
