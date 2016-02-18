@@ -38,10 +38,12 @@ You'll need to update your `knife.rb` to work with this also:
 
 ```ruby
 driver 'fog:OpenStack'
-driver_options :compute_options => { :openstack_auth_url => 'http://YOUROPENSTACK-CLOUD:5000/v2.0/tokens',
-                                     :openstack_username => 'YOURUSERNAME',
-                                     :openstack_api_key  => 'YOURPASSWORD',
-                                     :openstack_tenant   => 'YOURTENANTIDNAME' }
+driver_options :compute_options => { 
+                                     :openstack_auth_url => 'http://YOUROPENSTACK-CLOUD:5000/v2.0/tokens',
+                                     :openstack_username => 'YOUR-USERNAME',
+                                     :openstack_api_key  => 'YOUR-PASSWORD',
+                                     :openstack_tenant   => 'YOUR-TENANT-ID-NAME' 
+                                    }
 ```
 
 For a full example see [examples/openstack/simple.rb](examples/openstack/simple.rb).
@@ -54,9 +56,10 @@ You must configure some credentials and region in a `knife.rb` file like so:
 ```ruby
 driver 'fog:Rackspace'
 driver_options :compute_options => {
-                                     :rackspace_username => 'my_rackspace_user',
-                                     :rackspace_api_key  => 'api_key_for_user',
-                                     :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc  }
+                                     :rackspace_username => 'MY-RACKSPACE-USERr',
+                                     :rackspace_api_key  => 'API-KEY-FOR-USER',
+                                     :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc  
+                                    }
 ```
 
 For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
@@ -70,7 +73,8 @@ driver 'fog:Google'
 driver_options :compute_options => { :provider => 'google',
                                      :google_project => 'YOUR-PROJECT-ID', # the name will work here
                                      :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
-                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH-.p12' }
+                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12' 
+                                    }
 
 ```
 
