@@ -52,12 +52,11 @@ For this example, you must configure `knife.rb` with your credentials and a regi
 
 You must configure some credentials and region in a `knife.rb` file like so:
 ```ruby
-  driver 'fog:Rackspace'
-  driver_options :compute_options => {
-    :rackspace_username => 'my_rackspace_user',
-    :rackspace_api_key  => 'api_key_for_user',
-    :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc
-  }
+driver 'fog:Rackspace'
+driver_options :compute_options => {
+                                     :rackspace_username => 'my_rackspace_user',
+                                     :rackspace_api_key  => 'api_key_for_user',
+                                     :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc  }
 ```
 
 For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
@@ -69,12 +68,13 @@ You'll need to update your `knife.rb` to work with this also:
 ```ruby
 driver 'fog:Google'
 driver_options :compute_options => { :provider => 'google',
-                                     :google_project => 'YOURPROJECTID',
-                                     :google_client_email => 'YOURSERVICEACCOUNTEMAIL',
-                                     :google_key_location => 'YOURP12KEYFILEPATH' }
+                                     :google_project => 'YOUR-PROJECT-ID', # the name will work here
+                                     :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
+                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH-.p12' }
+
 ```
 
-In order to get the `YOURP12KEYFILEPATH` you need to set up a Service account. This is located at `Home > Permissions > Service Accounts` and you'll need to create a new one to get a new key. After that place it some place such as `~/.chef/` so chef-provisioning-fog can find it.
+In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service account. This is located at `Home > Permissions > Service Accounts` and you'll need to create a new one to get a new key. After that place it some place such as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email` would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
 
 For a full example see [examples/google/simple.rb](examples/google/simple.rb).
 
