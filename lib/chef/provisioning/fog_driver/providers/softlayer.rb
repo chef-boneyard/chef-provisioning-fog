@@ -22,37 +22,45 @@ class Chef
             new_compute_options[:provider] = provider
             new_config = { :driver_options => { :compute_options => new_compute_options }}
             new_defaults = {
-              :driver_options => { :compute_options => {} },
+              :driver_options => { :compute_options => Fog.credentials },
               :machine_options => { :bootstrap_options => {} }
             }
             result = Cheffish::MergedConfig.new(new_config, config, new_defaults)
             id ||= ''
             new_defaults[:machine_options][:bootstrap_options][:datacenter] = id if not id.empty?
 
-            credential = Fog.credentials
-
-            new_compute_options[:softlayer_username] ||= credential[:softlayer_username]
-            new_compute_options[:softlayer_api_key] ||= credential[:softlayer_api_key]
-
-            id = result[:driver_options][:compute_options][:softlayer_auth_url]
-
             [result, id]
           end
 
           def bootstrap_options_for(action_handler, machine_spec, machine_options)
+            # probably best to only ADD options here since super class looks
+            # for some values; for example, :key_name doesn't get saved to
+            # chef_provisioning.reference if you remove it here.
+            # Therefore, we remove things SoftLayer rejects in
+            # create_many_servers just before the actual fog create calls.
+
             opts = super
 
-            key_label = opts[:key_name]
+            if opts[:key_name]
+              key_label = opts[:key_name]
+              opts[:key_pairs] = [compute.key_pairs.by_label(key_label)] if key_label.is_a? String
+            end
+
+            opts
+          end
+
+          def create_many_servers(num_servers, bootstrap_options, parallelizer)
+            # need to filter out options that SoftLayer doesn't accept
+            opts = bootstrap_options.dup
 
             # options are passed directly to SoftLayer API and
             # SoftLayer_Hardware_Server rejects requests with unrecognized
             # options
             opts.keep_if do |opt, val|
-              Fog::Compute::Softlayer::Server.attributes.include?(opt)
+              ::Fog::Compute::Softlayer::Server.attributes.include?(opt)
             end
+            # fog-softlayer defines :tags but SoftLayer_Hardware_Server rejects it...
             #opts.delete :tags
-
-            opts[:key_pairs] = [Fog::Compute[:SoftLayer].key_pairs.by_label(key_label)] if key_label.is_a? String
 
             # we hook in our own post-install script which uses userMetadata to
             # tell us when post-install is complete. If the user supplies their
@@ -60,7 +68,7 @@ class Chef
             # completion in userData.
             opts[:postInstallScriptUri] = 'https://dal05.objectstorage.service.networklayer.com/v1/AUTH_b1b23a05-1c03-4961-8b08-2339886e476f/dist/sl-post-hook.sh'
 
-            opts
+            super(num_servers, opts, parallelizer)
           end
 
           def find_floating_ips(server, action_handler)
@@ -131,11 +139,12 @@ class Chef
             # VSI userData is empty; bare metal userData will be an Array
             if existing_user_data.empty?
               action_handler.report_progress("Setting userData to detect post install status.")
-              creds = Fog.credentials
+              sl_user = compute.instance_variable_get '@softlayer_username'
+              sl_key = compute.instance_variable_get '@softlayer_api_key'
               service = server.bare_metal? ? 'Hardware_Server' : 'Virtual_Guest'
               ::Retryable.retryable(:tries => 60, :sleep => 5) do
                 update_url = URI::HTTPS.build(
-                  :userinfo => "#{creds[:softlayer_username]}:#{creds[:softlayer_api_key]}",
+                  :userinfo => "#{sl_user}:#{sl_key}",
                   :host => 'api.service.softlayer.com',
                   :path => "/rest/v3/SoftLayer_#{service}/#{server.id}/setUserMetadata",
                 ).to_s

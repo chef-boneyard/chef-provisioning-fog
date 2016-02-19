@@ -28,12 +28,11 @@ fi
 # the response body is enclosed in double quotes which need to be removed
 # before decoding
 meta=$(echo "$curl_body" | tr -d '"')
-conf=$(echo -n "$meta" | base64 --decode)
 
 # chef-provisioning-fog SoftLayer driver provides the variables:
 #   POSTINST_REQUESTED_URL
 #   POSTINST_UPDATE_URL
-eval "$conf"
+eval "$(echo -n "$meta" | base64 --decode)"
 
 if [ "$POSTINST_REQUESTED_URL" ]; then
     curl "$POSTINST_REQUESTED_URL" --output user_post_install
