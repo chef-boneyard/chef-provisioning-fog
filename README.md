@@ -19,15 +19,18 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ## chef-provisioning-fog Usage and Examples
 
+**A note about key pairs** - The key name used in `fog_key_pair` must be the same as the filename of the local key to be used. If the key does not exist in one of `private_key_paths` (which you can set in `knife.rb` or in a `client.rb`) it will be created.
+
 ### DigitalOcean
 
-If you are on DigitalOcean and using the [`tugboat` gem](https://github.com/pearkes/tugboat), you can do this:
+Update your knife.rb to contain your DigitalOcean API token and the driver
 
+```ruby
+driver 'fog:DigitalOcean'
+driver_options compute_options: { digitalocean_token: 'token' }
 ```
-$ gem install chef-provisioning-fog
-$ export CHEF_DRIVER=fog:DigitalOcean
-$ chef-client -z simple.rb
-```
+
+For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
 
 ### OpenStack
 
@@ -35,62 +38,15 @@ You'll need to update your `knife.rb` to work with this also:
 
 ```ruby
 driver 'fog:OpenStack'
-driver_options :compute_options => { :openstack_auth_url => 'http://YOUROPENSTACK-CLOUD:5000/v2.0/tokens',
-                                     :openstack_username => 'YOURUSERNAME',
-                                     :openstack_api_key  => 'YOURPASSWORD',
-                                     :openstack_tenant   => 'YOURTENANTIDNAME' }
+driver_options :compute_options => { 
+                                     :openstack_auth_url => 'http://YOUROPENSTACK-CLOUD:5000/v2.0/tokens',
+                                     :openstack_username => 'YOUR-USERNAME',
+                                     :openstack_api_key  => 'YOUR-PASSWORD',
+                                     :openstack_tenant   => 'YOUR-TENANT-ID-NAME' 
+                                    }
 ```
 
-How to install the gem, and run a `simple.rb`.
-
-```
-$ gem install chef-provisioning-fog
-$ chef-client -z simple.rb
-```
-
-And inside your recipe, you'll need something like the following. This specifically will create 3 dev-webservers, and 1 qa-webserver.
-
-```ruby
-require 'chef/provisioning'
-
-with_machine_options({
-                       :bootstrap_options => {
-                         :flavor_ref  => 3,
-                         :image_ref => 'my-fake-ubuntu-image-0c1f2c38432b',
-                         :nics => [{ :net_id => 'my-tenantnetwork-id-89afddb9db6c'}],
-                         :key_name => 'mykeyname',
-                         :floating_ip_pool => 'ext-net'
-                         },
-                       :ssh_username => 'ubuntu'
-                     })
-
-machine_batch 'dev' do
-  1.upto(3) do |n|
-    instance = "#{name}-webserver-#{n}"
-    machine instance do
-      role 'webserver'
-      tag "#{name}-webserver-#{n}"
-      converge true
-    end
-  end
-end
-
-machine 'qa-webserver' do
-  tag 'qabox'
-  machine_options({
-                    bootstrap_options: {
-                      :flavor_ref  => 3,
-                      :nics => [{ :net_id => 'my-tenantnetwork-id-89afddb9db6c'}],
-                      :key_name => 'jdizzle',
-                      :image_ref => 'my-centos-image-2b0b6bb7b0c12b0b6bb7b0c1',
-                      :floating_ip_pool => 'ext-net'
-                      },
-                    :ssh_username => 'centos'
-                  })
-  role 'webserver'
-  converge true
-end
-```
+For a full example see [examples/openstack/simple.rb](examples/openstack/simple.rb).
 
 ### Rackspace
 
@@ -98,50 +54,33 @@ For this example, you must configure `knife.rb` with your credentials and a regi
 
 You must configure some credentials and region in a `knife.rb` file like so:
 ```ruby
-  driver 'fog:Rackspace'
-  driver_options :compute_options => {
-    :rackspace_username => 'my_rackspace_user',
-    :rackspace_api_key  => 'api_key_for_user',
-    :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc
-  }
+driver 'fog:Rackspace'
+driver_options :compute_options => {
+                                     :rackspace_username => 'MY-RACKSPACE-USERr',
+                                     :rackspace_api_key  => 'API-KEY-FOR-USER',
+                                     :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc  
+                                    }
 ```
 
-Ensure your Gemfile has (or install these with `gem install`):
-```
-gem 'chef-provisioning'
-gem 'chef-provisioning-fog'
-```
+For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
 
-Then, here's an example of making a keypair and booting a server:
+### Google Compute Engine
+
+You'll need to update your `knife.rb` to work with this also:
+
 ```ruby
-require 'chef/provisioning'
-require 'chef/provisioning/fog_driver/recipe_dsl'
+driver 'fog:Google'
+driver_options :compute_options => { :provider => 'google',
+                                     :google_project => 'YOUR-PROJECT-ID', # the name will work here
+                                     :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
+                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12' 
+                                    }
 
-# create/update a keypair at Rackspace's API endpoint, so we can use it later
-fog_key_pair 'example_id_rsa'
-
-# Options to bootstrap 2gb General instance with CentOS 6 (PVHVM)
-with_machine_options({
-  :bootstrap_options => {
-    :flavor_id => 'general1-2', # required
-    :image_id  => 'fabe045f-43f8-4991-9e6c-5cabd617538c', # required
-    :key_name  => 'example_id_rsa',
-
-    # optional attributes:
-    #   :disk_config, :metadata, :personality, :config_drive,
-    #   :boot_volume_id, :boot_image_id
-    #
-    # ** :image_id must be "" if :boot_volume_id or :boot_image_id is provided
-  }
-})
-
-machine 'mario' do
-  tag 'itsa_me'
-  converge true
-end
 ```
 
-If you run into SSH key trouble, [see this issue](https://github.com/chef/chef-provisioning-fog/issues/130) for some background of the chef-provisioning-fog driver and the fog library's different ways of bootstraping a server at Rackspace.
+In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service account. This is located at `Home > Permissions > Service Accounts` and you'll need to create a new one to get a new key. After that place it some place such as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email` would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
+
+For a full example see [examples/google/simple.rb](examples/google/simple.rb).
 
 ### Cleaning up
 

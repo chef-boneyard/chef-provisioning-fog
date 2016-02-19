@@ -297,7 +297,7 @@ module FogDriver
       specs_and_options.each do |machine_spec, machine_options|
         server = specs_and_servers[machine_spec]
         if server
-          if %w(terminated archive).include?(server.state) # Can't come back from that
+          if %w(terminated archive DELETED).include?(server.state) # Can't come back from that
             Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
           else
             yield machine_spec, server if block_given?
@@ -374,7 +374,7 @@ module FogDriver
     end
 
     def start_server(action_handler, machine_spec, server)
-      # If it is stopping, wait for it to get out of "stopping" transition state before starting
+      # If it is stopping, wait for it to get out of "stopping" transition status before starting
       if server.state == 'stopping'
         action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
         server.wait_for { server.state != 'stopping' }
