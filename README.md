@@ -89,7 +89,7 @@ You'll need to update your `knife.rb` to work:
 ```ruby
 driver 'fog:Joyent'
 driver_options :compute_options => { :joyent_username => 'YOUR-JOYENT-LOGIN',
-                                     :joyent_password => 'YOUR-JOYENT-PASSWORD,
+                                     :joyent_password => 'YOUR-JOYENT-PASSWORD',
                                      :joyent_keyname => 'THE-SSH-KEY-YOUVE-UPLOADED',
                                      :joyent_version => '7.3.0', # if you are using the joyent public cloud
                                      :joyent_keyfile => 'YOUR-PRIVATE-SSH-KEY-LOCATION' # Such as '/Users/jasghar/.ssh/id_rsa'
