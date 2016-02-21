@@ -23,7 +23,7 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ### DigitalOcean
 
-Update your knife.rb to contain your DigitalOcean API token and the driver
+Update your `knife.rb` to contain your DigitalOcean API token and the driver:
 
 ```ruby
 driver 'fog:DigitalOcean'
@@ -34,7 +34,7 @@ For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/s
 
 ### OpenStack
 
-You'll need to update your `knife.rb` to work with this also:
+You'll need to update your `knife.rb` to work:
 
 ```ruby
 driver 'fog:OpenStack'
@@ -63,7 +63,7 @@ For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.
 
 ### Google Compute Engine
 
-You'll need to update your `knife.rb` to work with this also:
+You'll need to update your `knife.rb` to work:
 
 ```ruby
 driver 'fog:Google'
@@ -77,6 +77,28 @@ driver_options :compute_options => { :provider => 'google',
 In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service account. This is located at `Home > Permissions > Service Accounts` and you'll need to create a new one to get a new key. After that place it some place such as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email` would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
 
 For a full example see [examples/google/simple.rb](examples/google/simple.rb).
+
+###  Joyent
+
+You'll need to update your `knife.rb` to work:
+
+```ruby
+driver 'fog:Joyent'
+driver_options :compute_options => { :joyent_username => 'YOUR-JOYENT-LOGIN',
+                                     :joyent_password => 'YOUR-JOYENT-PASSWORD,
+                                     :joyent_keyname => 'THE-SSH-KEY-YOUVE-UPLOADED',
+                                     :joyent_version => '7.3.0', # if you are using the joyent public cloud
+                                     :joyent_keyfile => 'YOUR-PRIVATE-SSH-KEY-LOCATION' # Such as '/Users/jasghar/.ssh/id_rsa'
+                                    }
+```
+
+Tested this with the [Joyent Public Cloud](https://docs.joyent.com/public-cloud). For the package names, use the
+GUI to find the name(s) that you want to use. This is also required to figure out the Image UUID, there doesn't seem to be an
+effective way of doing this without the GUI.
+
+For a more in-depth usage of this driver to use with either Private or Public Joyent cloud, checkout [this blog post][joyent_howto] by mhicks from [#smartos][freenode_smartos] on freenode.
+
+For a infrastructure container example see [examples/joyent/infrastructure.rb](examples/joyent/infrastructure.rb).
 
 ### Cleaning up
 
@@ -193,3 +215,5 @@ with_machine_options({
 [gem]: https://rubygems.org/gems/chef-provisioning-fog
 [travis]: https://travis-ci.org/chef/chef-provisioning-fog
 [gemnasium]: https://gemnasium.com/chef/chef-provisioning-fog
+[joyent_howto]: https://numericillustration.wordpress.com/2015/12/04/using-chef-provisioner-with-the-joyent-smart-data-center/
+[freenode_smartos]: http://webchat.freenode.net/?randomnick=1&channels=smartos&prompt=1
