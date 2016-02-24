@@ -35,7 +35,7 @@ class Chef
             bootstrap_options[:zone_name] ||= 'europe-west1-b'
             bootstrap_options[:name] ||= machine_spec.name
             bootstrap_options[:disk_size] ||= 10
-            disk_type_prefix = "https://www.googleapis.com/compute/v1/projects/#{compute_options['google_project']}/zones/#{bootstrap_options[:zone_name]}/diskTypes/"
+            disk_type_prefix = "https://www.googleapis.com/compute/v1/projects/#{compute_options[:google_project]}/zones/#{bootstrap_options[:zone_name]}/diskTypes/"
             standard_disk_type = disk_type_prefix + 'pd-standard'
             if bootstrap_options[:disk_type].nil?
               bootstrap_options[:disk_type] = standard_disk_type
