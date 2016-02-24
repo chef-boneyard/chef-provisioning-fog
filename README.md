@@ -38,11 +38,11 @@ You'll need to update your `knife.rb` to work:
 
 ```ruby
 driver 'fog:OpenStack'
-driver_options :compute_options => { 
+driver_options :compute_options => {
                                      :openstack_auth_url => 'http://YOUROPENSTACK-CLOUD:5000/v2.0/tokens',
                                      :openstack_username => 'YOUR-USERNAME',
                                      :openstack_api_key  => 'YOUR-PASSWORD',
-                                     :openstack_tenant   => 'YOUR-TENANT-ID-NAME' 
+                                     :openstack_tenant   => 'YOUR-TENANT-ID-NAME'
                                     }
 ```
 
@@ -58,7 +58,7 @@ driver 'fog:Rackspace'
 driver_options :compute_options => {
                                      :rackspace_username => 'MY-RACKSPACE-USERr',
                                      :rackspace_api_key  => 'API-KEY-FOR-USER',
-                                     :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc  
+                                     :rackspace_region => 'dfw' # could be 'org', 'iad', 'hkg', etc
                                     }
 ```
 
@@ -73,14 +73,21 @@ driver 'fog:Google'
 driver_options :compute_options => { :provider => 'google',
                                      :google_project => 'YOUR-PROJECT-ID', # the name will work here
                                      :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
-                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12' 
+                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12'
                                     }
 
 ```
 
-In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service account. This is located at `Home > Permissions > Service Accounts` and you'll need to create a new one to get a new key. After that place it some place such as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email` would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
+In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service
+account. This is located at `Home > Permissions > Service Accounts` and you'll
+need to create a new one to get a new key. After that place it some place such
+as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email`
+would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
 
-For a full example see [examples/google/simple.rb](examples/google/simple.rb).
+For a full simple example see [examples/google/simple.rb](examples/google/simple.rb).
+
+For an example that shows a different `:disk_type` see
+[examples/google/simple_different_disk.rb](examples/google/simple_different_disk.rb).
 
 ###  Joyent
 
