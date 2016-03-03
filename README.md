@@ -111,6 +111,35 @@ For a more in-depth usage of this driver to use with either Private or Public Jo
 
 For a infrastructure container example see [examples/joyent/infrastructure.rb](examples/joyent/infrastructure.rb).
 
+### IBM SoftLayer
+
+You'll need to update your `knife.rb` to work with this also:
+
+```ruby
+driver 'fog:SoftLayer'
+driver_options :compute_options => { :provider => 'softlayer',
+                                     :softlayer_username => 'username',
+                                     :softlayer_api_key => 'api_key',
+                                     :softlayer_default_domain => 'example.com',
+                                   }
+
+```
+
+Once you or your administrator has created a SoftLayer account you can manage
+your API key at https://control.softlayer.com/account/users
+
+`:bootstrap_options => {:key_name => 'label'}` is looked up by_label; make sure
+you have a public key created on control portal at
+https://control.softlayer.com/devices/sshkeys with a matching label.
+
+NOTE: the SoftLayer driver injects a custom post provisioning script that
+ensures some packages needed by chef-provisioning-fog to install chef are
+present (e.g. sudo). The injected script will call your :postInstallScriptUri
+if you define one. The driver will wait until the injected script is done. The
+driver and script communicate using userMetadata so you cannot use metadata.
+
+For a full example see [examples/softlayer/simple.rb](examples/softlayer/simple.rb).
+
 ### Cleaning up
 
 ```ruby
