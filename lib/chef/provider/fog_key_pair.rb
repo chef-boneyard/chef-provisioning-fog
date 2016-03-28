@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'chef/provider/lwrp_base'
 require 'chef/provisioning/fog_driver/driver'
 
@@ -213,9 +214,9 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
     @current_resource = Chef::Resource::FogKeyPair.new(new_resource.name, run_context)
     case new_driver.provider
     when 'DigitalOcean'
-      current_key_pair = compute.ssh_keys.select { |key| key.name == new_resource.name }.first
+      current_key_pair = compute.list_ssh_keys.body['ssh_keys'].select { |key| key['name'] == new_resource.name }.first
       if current_key_pair
-        @current_id = current_key_pair.id
+        @current_id = current_key_pair['id']
         @current_fingerprint = current_key_pair ? compute.ssh_keys.get(@current_id).public_key : nil
       else
         current_resource.action :delete
