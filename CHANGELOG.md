@@ -1,5 +1,37 @@
 # Change Log
 
+## [0.17.0](https://github.com/chef/chef-provisioning-fog/tree/0.17.0) (2016-03-28)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.16.0...0.17.0)
+
+**Fixed bugs:**
+
+- Undefined Method `addresses' for Joyent Driver [\#118](https://github.com/chef/chef-provisioning-fog/issues/118)
+- Find better fog:aws URL format for Eucalyptus [\#42](https://github.com/chef/chef-provisioning-fog/issues/42)
+- Fog URL sometimes gets set to empty region [\#35](https://github.com/chef/chef-provisioning-fog/issues/35)
+- Adds ability to specify disk type for google provider [\#162](https://github.com/chef/chef-provisioning-fog/pull/162) ([kri5](https://github.com/kri5))
+
+**Closed issues:**
+
+- \[softlayer\] NoMethodError: undefined method `status' [\#170](https://github.com/chef/chef-provisioning-fog/issues/170)
+- ea3ae05cb8150701ca26ae66052e57530415eff1 changes server.state to server.status for all fog drivers [\#161](https://github.com/chef/chef-provisioning-fog/issues/161)
+- \[softlayer\] create and delete storage with chef-provisioning-fog [\#151](https://github.com/chef/chef-provisioning-fog/issues/151)
+- \[softlayer\] create and delete networks with chef-provisioning-fog [\#150](https://github.com/chef/chef-provisioning-fog/issues/150)
+- machine names do not appear to be idempotent [\#145](https://github.com/chef/chef-provisioning-fog/issues/145)
+- Bootstrapping requires node to have internet access [\#122](https://github.com/chef/chef-provisioning-fog/issues/122)
+- Add a easy way for users to get a machine’s attributes, like connection information [\#108](https://github.com/chef/chef-provisioning-fog/issues/108)
+- Support reading DigitalOcean credentials out of knife.rb [\#100](https://github.com/chef/chef-provisioning-fog/issues/100)
+- Documentation says to require 'chef/provisioning/fog\_driver' but you actually must load 'chef/provisioning/fog\_driver/driver' [\#92](https://github.com/chef/chef-provisioning-fog/issues/92)
+
+**Merged pull requests:**
+
+- Joyent documentation [\#169](https://github.com/chef/chef-provisioning-fog/pull/169) ([jjasghar](https://github.com/jjasghar))
+- updated docs for GCE [\#167](https://github.com/chef/chef-provisioning-fog/pull/167) ([jjasghar](https://github.com/jjasghar))
+- Fix for google-api-client [\#165](https://github.com/chef/chef-provisioning-fog/pull/165) ([jjasghar](https://github.com/jjasghar))
+- Adds example for google compute engine [\#163](https://github.com/chef/chef-provisioning-fog/pull/163) ([kri5](https://github.com/kri5))
+- Revert to using state instead of status [\#160](https://github.com/chef/chef-provisioning-fog/pull/160) ([hh](https://github.com/hh))
+- Generate new changelog with bumped version \(no release\) [\#158](https://github.com/chef/chef-provisioning-fog/pull/158) ([jkeiser](https://github.com/jkeiser))
+- SoftLayer driver. [\#149](https://github.com/chef/chef-provisioning-fog/pull/149) ([causton81](https://github.com/causton81))
+
 ## [v0.16.0](https://github.com/chef/chef-provisioning-fog/tree/v0.16.0) (2016-02-03)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.15.3...v0.16.0)
 
