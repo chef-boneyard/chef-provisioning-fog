@@ -3,6 +3,14 @@ $:.unshift File.expand_path('../support', __FILE__)
 require 'fog'
 require 'chef/provisioning'
 require 'chef/provisioning/fog_driver/driver'
+require 'simplecov'
+
+SimpleCov.start do
+  # add_filter do |source_file|
+  #   # source_file.lines.count < 5
+  #   source.filename =~ /^#{SimpleCov.root}\/chef-provisioning-fake/)
+  # end
+end
 
 RSpec.configure do |config|
   config.run_all_when_everything_filtered = true
