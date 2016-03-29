@@ -297,11 +297,20 @@ module FogDriver
       specs_and_options.each do |machine_spec, machine_options|
         server = specs_and_servers[machine_spec]
         if server
-          if %w(terminated archive DELETED).include?(server.state) # Can't come back from that
-            Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
+          if config.driver_options.compute_options.provider == "DigitalOcean"
+            if %w(terminated archive DELETED).include?(server.status) # Can't come back from that
+              Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
+            else
+              yield machine_spec, server if block_given?
+              next
+            end
           else
-            yield machine_spec, server if block_given?
-            next
+            if %w(terminated archive DELETED).include?(server.state) # Can't come back from that
+              Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
+            else
+              yield machine_spec, server if block_given?
+              next
+            end
           end
         elsif machine_spec.reference
           Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
@@ -375,18 +384,36 @@ module FogDriver
 
     def start_server(action_handler, machine_spec, server)
       # If it is stopping, wait for it to get out of "stopping" transition status before starting
-      if server.state == 'stopping'
-        action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
-        server.wait_for { server.state != 'stopping' }
-        action_handler.report_progress "#{machine_spec.name} is now stopped"
+      if config.driver_options.compute_options.provider == "DigitalOcean"
+        if server.status == 'stopping'
+          action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
+          server.wait_for { server.status != 'stopping' }
+          action_handler.report_progress "#{machine_spec.name} is now stopped"
+        end
+      else
+        if server.state == 'stopping'
+          action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
+          server.wait_for { server.state != 'stopping' }
+          action_handler.report_progress "#{machine_spec.name} is now stopped"
+        end
       end
 
-      if server.state == 'stopped'
+      if config.driver_options.compute_options.provider == "DigitalOcean"
+        if server.status == 'stopped'
         action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
           server.start
           machine_spec.reference['started_at'] = Time.now.to_i
         end
         machine_spec.save(action_handler)
+      end
+      else
+        if server.state == 'stopped'
+          action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
+            server.start
+            machine_spec.reference['started_at'] = Time.now.to_i
+          end
+          machine_spec.save(action_handler)
+        end
       end
     end
 
