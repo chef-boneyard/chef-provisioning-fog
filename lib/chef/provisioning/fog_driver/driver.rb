@@ -297,7 +297,7 @@ module FogDriver
       specs_and_options.each do |machine_spec, machine_options|
         server = specs_and_servers[machine_spec]
         if server
-          if config.driver_options.compute_options.provider == "DigitalOcean"
+          if config.driver_options.compute_options.provider =~ /DigitalOcean/i
             if %w(terminated archive DELETED).include?(server.status) # Can't come back from that
               Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
             else
@@ -384,7 +384,7 @@ module FogDriver
 
     def start_server(action_handler, machine_spec, server)
       # If it is stopping, wait for it to get out of "stopping" transition status before starting
-      if config.driver_options.compute_options.provider == "DigitalOcean"
+      if config.driver_options.compute_options.provider =~ /DigitalOcean/i
         if server.status == 'stopping'
           action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
           server.wait_for { server.status != 'stopping' }
@@ -398,7 +398,7 @@ module FogDriver
         end
       end
 
-      if config.driver_options.compute_options.provider == "DigitalOcean"
+      if config.driver_options.compute_options.provider =~ /DigitalOcean/i
         if server.status == 'stopped'
         action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
           server.start
