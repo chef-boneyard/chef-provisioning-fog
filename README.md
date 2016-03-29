@@ -70,7 +70,8 @@ You'll need to update your `knife.rb` to work:
 
 ```ruby
 driver 'fog:Google'
-driver_options :compute_options => { :provider => 'google',
+driver_options :compute_options => { 
+                                     :provider => 'google',
                                      :google_project => 'YOUR-PROJECT-ID', # the name will work here
                                      :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
                                      :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12'
@@ -95,7 +96,8 @@ You'll need to update your `knife.rb` to work:
 
 ```ruby
 driver 'fog:Joyent'
-driver_options :compute_options => { :joyent_username => 'YOUR-JOYENT-LOGIN',
+driver_options :compute_options => { 
+                                     :joyent_username => 'YOUR-JOYENT-LOGIN',
                                      :joyent_password => 'YOUR-JOYENT-PASSWORD',
                                      :joyent_keyname => 'THE-SSH-KEY-YOUVE-UPLOADED',
                                      :joyent_version => '7.3.0', # if you are using the joyent public cloud
@@ -117,7 +119,8 @@ You'll need to update your `knife.rb` to work with this also:
 
 ```ruby
 driver 'fog:SoftLayer'
-driver_options :compute_options => { :provider => 'softlayer',
+driver_options :compute_options => { 
+                                     :provider => 'softlayer',
                                      :softlayer_username => 'username',
                                      :softlayer_api_key => 'api_key',
                                      :softlayer_default_domain => 'example.com',
