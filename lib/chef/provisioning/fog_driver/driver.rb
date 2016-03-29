@@ -298,7 +298,7 @@ module FogDriver
         server = specs_and_servers[machine_spec]
         if server
           server_state = server.respond_to?(:status) ? server.status : server.state
-          if %w(terminated archive DELETED).include?(server_state) # Can't come back from that
+          if %w(terminated archive DELETED).include?(server_state.downcase) # Can't come back from that
             Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
           else
             yield machine_spec, server if block_given?
