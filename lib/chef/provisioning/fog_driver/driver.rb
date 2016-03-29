@@ -297,32 +297,24 @@ module FogDriver
       specs_and_options.each do |machine_spec, machine_options|
         server = specs_and_servers[machine_spec]
         if server
-          if config.driver_options.compute_options.provider =~ /DigitalOcean/i
-            if %w(terminated archive DELETED).include?(server.status) # Can't come back from that
-              Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
-            else
-              yield machine_spec, server if block_given?
-              next
-            end
+          server_state = server.respond_to?(:status) ? server.status : server.state
+          if %w(terminated archive DELETED).include?(server_state) # Can't come back from that
+            Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
           else
-            if %w(terminated archive DELETED).include?(server.state) # Can't come back from that
-              Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
-            else
-              yield machine_spec, server if block_given?
-              next
-            end
+            yield machine_spec, server if block_given?
+            next
           end
         elsif machine_spec.reference
           Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
         end
 
-        machine_spec.reference ||= {}
-        machine_spec.reference.update(
-            'driver_url' => driver_url,
-            'driver_version' => FogDriver::VERSION,
-            'creator' => creator,
-            'allocated_at' => Time.now.to_i
-        )
+      machine_spec.reference ||= {}
+      machine_spec.reference.update(
+        'driver_url' => driver_url,
+        'driver_version' => FogDriver::VERSION,
+        'creator' => creator,
+        'allocated_at' => Time.now.to_i
+      )
 
         bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
         machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
@@ -384,36 +376,18 @@ module FogDriver
 
     def start_server(action_handler, machine_spec, server)
       # If it is stopping, wait for it to get out of "stopping" transition status before starting
-      if config.driver_options.compute_options.provider =~ /DigitalOcean/i
-        if server.status == 'stopping'
-          action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
-          server.wait_for { server.status != 'stopping' }
-          action_handler.report_progress "#{machine_spec.name} is now stopped"
-        end
-      else
-        if server.state == 'stopping'
-          action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
-          server.wait_for { server.state != 'stopping' }
-          action_handler.report_progress "#{machine_spec.name} is now stopped"
-        end
+      server_state = server.respond_to?(:status) ? server.status : server.state
+      if server_state == 'stopping'
+        action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
+        server.wait_for { server_state != 'stopping' }
+        action_handler.report_progress "#{machine_spec.name} is now stopped"
       end
-
-      if config.driver_options.compute_options.provider =~ /DigitalOcean/i
-        if server.status == 'stopped'
+      if server_state == 'stopped'
         action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
           server.start
           machine_spec.reference['started_at'] = Time.now.to_i
         end
         machine_spec.save(action_handler)
-      end
-      else
-        if server.state == 'stopped'
-          action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
-            server.start
-            machine_spec.reference['started_at'] = Time.now.to_i
-          end
-          machine_spec.save(action_handler)
-        end
       end
     end
 
