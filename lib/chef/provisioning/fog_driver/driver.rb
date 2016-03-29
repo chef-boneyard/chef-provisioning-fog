@@ -244,7 +244,7 @@ module FogDriver
           machine_spec.reference = nil
         end
       end
-      strategy = convergence_strategy_for(machine_spec, machine_options)
+      strategy = ConvergenceStrategy::NoConverge.new(machine_options[:convergence_options], config)
       strategy.cleanup_convergence(action_handler, machine_spec)
     end
 
