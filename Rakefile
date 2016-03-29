@@ -1,8 +1,9 @@
 require 'bundler'
 require 'bundler/gem_tasks'
 
+desc "run specs"
 task :spec do
-  require File.expand_path('spec/run')
+  sh "bundle exec rspec"
 end
 
 require "github_changelog_generator/task"

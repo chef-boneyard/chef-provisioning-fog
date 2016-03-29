@@ -4,3 +4,8 @@ pkg/
 tags
 .bundle/
 bin/
+coverage/
+destroy.rb
+digitalocean.rb
+google.rb
+openstack.rb
