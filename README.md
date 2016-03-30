@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/chef/chef-provisioning-fog.svg?branch=master)][travis]
 [![Dependency Status](https://img.shields.io/gemnasium/chef/chef-provisioning-fog.svg)][gemnasium]
 
-This is the Fog driver for Chef Provisioning.  It provides Amazon EC2, Rackspace, DigitalOcean, SoftLayer, OpenStack, vCloud Air and XenServer functionality.
+This is the Fog driver for Chef Provisioning.  It provides Amazon EC2, DigitalOcean, Google Compute Engine, IBM Softlayer, Joyent, OpenStack, Rackspace, vCloud Air and XenServer functionality.
 
 ## Documentation
 
@@ -21,16 +21,123 @@ These are the primary documents to help learn about using Provisioning and creat
 
 **A note about key pairs** - The key name used in `fog_key_pair` must be the same as the filename of the local key to be used. If the key does not exist in one of `private_key_paths` (which you can set in `knife.rb` or in a `client.rb`) it will be created.
 
+### Amazon EC2
+
+You'll need to update your `knife.rb` to work:
+
+You need one of the following for the driver:
+```
+fog:AWS:<account_id>:<region>
+fog:AWS:<profile_name>
+fog:AWS:<profile_name>:<region>
+```
+
+For example:
+
+```ruby
+driver 'fog:AWS:<account_id>:<region>'
+driver_options :compute_options => {
+                                    :aws_access_key_id => 'YOUR-ACCESS-KEY-ID',
+                                    :aws_secret_access_key => 'YOUR-SECRET-ACCESS-KEY',
+                                    :region => 'THE-REGION-YOU-WANT-TO-PROVISION-IN'
+                                    }
+```
+
+For a full example see [examples/aws/simple.rb](examples/aws/simple.rb).
+
+
 ### DigitalOcean
 
 Update your `knife.rb` to contain your DigitalOcean API token and the driver:
 
 ```ruby
 driver 'fog:DigitalOcean'
-driver_options compute_options: { digitalocean_token: 'token' }
+driver_options compute_options: {
+                                  digitalocean_token: 'token'
+                                }
 ```
 
 For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
+
+### Google Compute Engine
+
+You'll need to update your `knife.rb` to work:
+
+```ruby
+driver 'fog:Google'
+driver_options :compute_options => {
+                                     :provider => 'google',
+                                     :google_project => 'YOUR-PROJECT-ID', # the name will work here
+                                     :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
+                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12'
+                                    }
+
+```
+
+In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service
+account. This is located at `Home > Permissions > Service Accounts` and you'll
+need to create a new one to get a new key. After that place it some place such
+as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email`
+would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
+
+For a full simple example see [examples/google/simple.rb](examples/google/simple.rb).
+
+For an example that shows a different `:disk_type` see
+[examples/google/simple_different_disk.rb](examples/google/simple_different_disk.rb).
+
+### IBM SoftLayer
+
+You'll need to update your `knife.rb` to work with this also:
+
+```ruby
+driver 'fog:SoftLayer'
+driver_options :compute_options => {
+                                     :provider => 'softlayer',
+                                     :softlayer_username => 'username',
+                                     :softlayer_api_key => 'api_key',
+                                     :softlayer_default_domain => 'example.com',
+                                   }
+
+```
+
+Once you or your administrator has created a SoftLayer account you can manage
+your API key at https://control.softlayer.com/account/users
+
+`:bootstrap_options => {:key_name => 'label'}` is looked up by_label; make sure
+you have a public key created on control portal at
+https://control.softlayer.com/devices/sshkeys with a matching label.
+
+NOTE: the SoftLayer driver injects a custom post provisioning script that
+ensures some packages needed by chef-provisioning-fog to install chef are
+present (e.g. sudo). The injected script will call your :postInstallScriptUri
+if you define one. The driver will wait until the injected script is done. The
+driver and script communicate using userMetadata so you cannot use metadata.
+
+For a full example see [examples/softlayer/simple.rb](examples/softlayer/simple.rb).
+
+### Joyent
+
+You'll need to update your `knife.rb` to work:
+
+```ruby
+driver 'fog:Joyent'
+driver_options :compute_options => {
+                                     :joyent_username => 'YOUR-JOYENT-LOGIN',
+                                     :joyent_password => 'YOUR-JOYENT-PASSWORD',
+                                     :joyent_keyname => 'THE-SSH-KEY-YOUVE-UPLOADED',
+                                     :joyent_version => '7.3.0', # if you are using the joyent public cloud
+                                     :joyent_keyfile => 'YOUR-PRIVATE-SSH-KEY-LOCATION' # Such as '/Users/jasghar/.ssh/id_rsa'
+                                    }
+```
+
+Tested this with the [Joyent Public Cloud](https://docs.joyent.com/public-cloud). For the package names, use the
+GUI to find the name(s) that you want to use. This is also required to figure out the Image UUID, there doesn't seem to be an
+effective way of doing this without the GUI.
+
+For a more in-depth usage of this driver to use with either Private or Public Joyent cloud, checkout [this blog post][joyent_howto] by mhicks from [#smartos][freenode_smartos] on freenode.
+
+For a infrastructure container example see [examples/joyent/infrastructure.rb](examples/joyent/infrastructure.rb).
+
 
 ### OpenStack
 
@@ -64,84 +171,14 @@ driver_options :compute_options => {
 
 For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
 
-### Google Compute Engine
+### vCloud Air
 
-You'll need to update your `knife.rb` to work:
+Docs TODO.
 
-```ruby
-driver 'fog:Google'
-driver_options :compute_options => { 
-                                     :provider => 'google',
-                                     :google_project => 'YOUR-PROJECT-ID', # the name will work here
-                                     :google_client_email => 'YOUR-SERVICE-ACCOUNT-EMAIL',
-                                     :google_key_location => 'YOUR-SERVICE-P12-KEY-FILE-FULL-PATH.p12'
-                                    }
+### XenServer
 
-```
+Docs TODO.
 
-In order to get the `YOUR-SERVICE-P12-KEY-FILE.p12` you need to set up a Service
-account. This is located at `Home > Permissions > Service Accounts` and you'll
-need to create a new one to get a new key. After that place it some place such
-as `~/.chef/` so chef-provisioning-fog can find it. Your `google_client_email`
-would be something like: `<UNIQUE_NAME>@<PROJECT>.iam.gserviceaccount.com`.
-
-For a full simple example see [examples/google/simple.rb](examples/google/simple.rb).
-
-For an example that shows a different `:disk_type` see
-[examples/google/simple_different_disk.rb](examples/google/simple_different_disk.rb).
-
-###  Joyent
-
-You'll need to update your `knife.rb` to work:
-
-```ruby
-driver 'fog:Joyent'
-driver_options :compute_options => { 
-                                     :joyent_username => 'YOUR-JOYENT-LOGIN',
-                                     :joyent_password => 'YOUR-JOYENT-PASSWORD',
-                                     :joyent_keyname => 'THE-SSH-KEY-YOUVE-UPLOADED',
-                                     :joyent_version => '7.3.0', # if you are using the joyent public cloud
-                                     :joyent_keyfile => 'YOUR-PRIVATE-SSH-KEY-LOCATION' # Such as '/Users/jasghar/.ssh/id_rsa'
-                                    }
-```
-
-Tested this with the [Joyent Public Cloud](https://docs.joyent.com/public-cloud). For the package names, use the
-GUI to find the name(s) that you want to use. This is also required to figure out the Image UUID, there doesn't seem to be an
-effective way of doing this without the GUI.
-
-For a more in-depth usage of this driver to use with either Private or Public Joyent cloud, checkout [this blog post][joyent_howto] by mhicks from [#smartos][freenode_smartos] on freenode.
-
-For a infrastructure container example see [examples/joyent/infrastructure.rb](examples/joyent/infrastructure.rb).
-
-### IBM SoftLayer
-
-You'll need to update your `knife.rb` to work with this also:
-
-```ruby
-driver 'fog:SoftLayer'
-driver_options :compute_options => { 
-                                     :provider => 'softlayer',
-                                     :softlayer_username => 'username',
-                                     :softlayer_api_key => 'api_key',
-                                     :softlayer_default_domain => 'example.com',
-                                   }
-
-```
-
-Once you or your administrator has created a SoftLayer account you can manage
-your API key at https://control.softlayer.com/account/users
-
-`:bootstrap_options => {:key_name => 'label'}` is looked up by_label; make sure
-you have a public key created on control portal at
-https://control.softlayer.com/devices/sshkeys with a matching label.
-
-NOTE: the SoftLayer driver injects a custom post provisioning script that
-ensures some packages needed by chef-provisioning-fog to install chef are
-present (e.g. sudo). The injected script will call your :postInstallScriptUri
-if you define one. The driver will wait until the injected script is done. The
-driver and script communicate using userMetadata so you cannot use metadata.
-
-For a full example see [examples/softlayer/simple.rb](examples/softlayer/simple.rb).
 
 ### Cleaning up
 
@@ -168,10 +205,9 @@ Chef Provisioning has two major abstractions: the machine resource, and drivers.
 
 You declare what your machines do (recipes, tags, etc.) with the `machine` resource, the fundamental unit of Chef Provisioning.  You will typically declare `machine` resources in a separate, OS/provisioning-independent file that declares the *topology* of your app--your machines and the recipes that will run on them.
 
-The machine resources from the [cluster.rb example](https://github.com/chef/chef-provisioning/blob/master/docs/examples/cluster.rb) are pretty straightforward.  Here's a copy/paste:
+The machine resources from the [cluster.rb example](https://github.com/chef/chef-provisioning/blob/master/docs/examples/cluster.rb) are pretty straightforward.  Here's a copy/paste, it'll create a database machine then one web server.
 
 ```ruby
-# Database!
 machine 'mario' do
   recipe 'postgresql'
   recipe 'mydb'
@@ -180,7 +216,6 @@ end
 
 num_webservers = 1
 
-# Web servers!
 1.upto(num_webservers) do |i|
   machine "luigi#{i}" do
     recipe 'apache'
