@@ -37,9 +37,9 @@ For example:
 ```ruby
 driver 'fog:AWS:<account_id>:<region>'
 driver_options :compute_options => {
-                                    :aws_access_key_id => 'YOUR-ACCESS-KEY-ID',
-                                    :aws_secret_access_key => 'YOUR-SECRET-ACCESS-KEY',
-                                    :region => 'THE-REGION-YOU-WANT-TO-PROVISION-IN'
+                                     :aws_access_key_id => 'YOUR-ACCESS-KEY-ID',
+                                     :aws_secret_access_key => 'YOUR-SECRET-ACCESS-KEY',
+                                     :region => 'THE-REGION-YOU-WANT-TO-PROVISION-IN'
                                     }
 ```
 
@@ -52,9 +52,9 @@ Update your `knife.rb` to contain your DigitalOcean API token and the driver:
 
 ```ruby
 driver 'fog:DigitalOcean'
-driver_options compute_options: {
-                                  digitalocean_token: 'token'
-                                }
+driver_options :compute_options => {
+                                    :digitalocean_token => 'token'
+                                   }
 ```
 
 For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
@@ -178,7 +178,6 @@ Docs TODO.
 ### XenServer
 
 Docs TODO.
-
 
 ### Cleaning up
 
