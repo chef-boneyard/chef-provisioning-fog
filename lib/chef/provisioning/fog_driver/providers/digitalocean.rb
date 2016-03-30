@@ -10,6 +10,13 @@ module FogDriver
         ''
       end
 
+      def convergence_strategy_for(machine_spec, machine_options)
+        machine_options = Cheffish::MergedConfig.new(machine_options, {
+                                                       :convergence_options => {:ohai_hints => {'digital_ocean' => {}}}
+                                                     })
+        super(machine_spec, machine_options)
+      end
+
       def converge_floating_ips(action_handler, machine_spec, machine_options, server)
         # DigitalOcean does not have floating IPs
       end
