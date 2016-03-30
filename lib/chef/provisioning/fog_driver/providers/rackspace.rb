@@ -11,6 +11,14 @@ module FogDriver
         compute_options[:rackspace_username]
       end
 
+      def convergence_strategy_for(machine_spec, machine_options)
+        machine_options = Cheffish::MergedConfig.new(machine_options, {
+                                                       :convergence_options => {:ohai_hints => {'rackspace' => {}}}
+                                                     })
+        super(machine_spec, machine_options)
+      end
+
+
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
         new_compute_options[:provider] = provider
