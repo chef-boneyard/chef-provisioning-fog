@@ -297,7 +297,8 @@ module FogDriver
       specs_and_options.each do |machine_spec, machine_options|
         server = specs_and_servers[machine_spec]
         if server
-          if %w(terminated archive DELETED).include?(server.state) # Can't come back from that
+          server_state = server.respond_to?(:status) ? server.status : server.state
+          if %w(terminated archive DELETED).include?(server_state.downcase) # Can't come back from that
             Chef::Log.warn "Machine #{machine_spec.name} (#{server.id} on #{driver_url}) is terminated.  Recreating ..."
           else
             yield machine_spec, server if block_given?
@@ -307,13 +308,13 @@ module FogDriver
           Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
         end
 
-        machine_spec.reference ||= {}
-        machine_spec.reference.update(
-            'driver_url' => driver_url,
-            'driver_version' => FogDriver::VERSION,
-            'creator' => creator,
-            'allocated_at' => Time.now.to_i
-        )
+      machine_spec.reference ||= {}
+      machine_spec.reference.update(
+        'driver_url' => driver_url,
+        'driver_version' => FogDriver::VERSION,
+        'creator' => creator,
+        'allocated_at' => Time.now.to_i
+      )
 
         bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
         machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
@@ -375,13 +376,13 @@ module FogDriver
 
     def start_server(action_handler, machine_spec, server)
       # If it is stopping, wait for it to get out of "stopping" transition status before starting
-      if server.state == 'stopping'
+      server_state = server.respond_to?(:status) ? server.status : server.state
+      if server_state == 'stopping'
         action_handler.report_progress "wait for #{machine_spec.name} (#{server.id} on #{driver_url}) to finish stopping ..."
-        server.wait_for { server.state != 'stopping' }
+        server.wait_for { server_state != 'stopping' }
         action_handler.report_progress "#{machine_spec.name} is now stopped"
       end
-
-      if server.state == 'stopped'
+      if server_state == 'stopped'
         action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
           server.start
           machine_spec.reference['started_at'] = Time.now.to_i
