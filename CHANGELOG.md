@@ -1,7 +1,29 @@
 # Change Log
 
-## [0.17.0](https://github.com/chef/chef-provisioning-fog/tree/0.17.0) (2016-03-28)
-[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.16.0...0.17.0)
+## [0.18.0](https://github.com/chef/chef-provisioning-fog/tree/0.18.0) (2016-03-30)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.17.0...0.18.0)
+
+**Fixed bugs:**
+
+- Digitial Ocean v1 provisioning will stop working November 15th, 2015... so will fog [\#119](https://github.com/chef/chef-provisioning-fog/issues/119)
+- destroy\_machines should not fail when no server is found [\#159](https://github.com/chef/chef-provisioning-fog/pull/159) ([ckaushik](https://github.com/ckaushik))
+
+**Closed issues:**
+
+- \[digitalocean\] no method state [\#172](https://github.com/chef/chef-provisioning-fog/issues/172)
+- EC2 documentation [\#168](https://github.com/chef/chef-provisioning-fog/issues/168)
+- destroy\_machines fails to delete chef objects when server is not found at reference [\#154](https://github.com/chef/chef-provisioning-fog/issues/154)
+- machine\_image support for digitalocean [\#140](https://github.com/chef/chef-provisioning-fog/issues/140)
+
+**Merged pull requests:**
+
+- Adding ohai hints to drivers [\#176](https://github.com/chef/chef-provisioning-fog/pull/176) ([jjasghar](https://github.com/jjasghar))
+- AWS documentation [\#175](https://github.com/chef/chef-provisioning-fog/pull/175) ([jjasghar](https://github.com/jjasghar))
+- Added more to the testing frame work [\#174](https://github.com/chef/chef-provisioning-fog/pull/174) ([jjasghar](https://github.com/jjasghar))
+- Work around for DigitalOcean [\#173](https://github.com/chef/chef-provisioning-fog/pull/173) ([jjasghar](https://github.com/jjasghar))
+
+## [v0.17.0](https://github.com/chef/chef-provisioning-fog/tree/v0.17.0) (2016-03-28)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.16.0...v0.17.0)
 
 **Fixed bugs:**
 
@@ -24,6 +46,7 @@
 
 **Merged pull requests:**
 
+- Updated fog [\#171](https://github.com/chef/chef-provisioning-fog/pull/171) ([jjasghar](https://github.com/jjasghar))
 - Joyent documentation [\#169](https://github.com/chef/chef-provisioning-fog/pull/169) ([jjasghar](https://github.com/jjasghar))
 - updated docs for GCE [\#167](https://github.com/chef/chef-provisioning-fog/pull/167) ([jjasghar](https://github.com/jjasghar))
 - Fix for google-api-client [\#165](https://github.com/chef/chef-provisioning-fog/pull/165) ([jjasghar](https://github.com/jjasghar))
