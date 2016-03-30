@@ -13,13 +13,6 @@ module FogDriver
         compute_options[:joyent_username]
       end
 
-      def convergence_strategy_for(machine_spec, machine_options)
-        machine_options = Cheffish::MergedConfig.new(machine_options, {
-                                                       :convergence_options => {:ohai_hints => {'joyent' => {}}}
-                                                     })
-        super(machine_spec, machine_options)
-      end
-
       def bootstrap_options_for(action_handler, machine_spec, machine_options)
         bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
