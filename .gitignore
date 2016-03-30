@@ -9,3 +9,4 @@ destroy.rb
 digitalocean.rb
 google.rb
 openstack.rb
+aws.rb

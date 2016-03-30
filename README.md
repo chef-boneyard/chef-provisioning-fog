@@ -25,12 +25,26 @@ These are the primary documents to help learn about using Provisioning and creat
 
 You'll need to update your `knife.rb` to work:
 
-```ruby
-driver 'fog:'
-driver_options :compute_options => {
-                                   }
-
+You need one of the following for the driver:
 ```
+fog:AWS:<account_id>:<region>
+fog:AWS:<profile_name>
+fog:AWS:<profile_name>:<region>
+```
+
+For example:
+
+```ruby
+driver 'fog:AWS:<account_id>:<region>'
+driver_options :compute_options => {
+                                    :aws_access_key_id => 'YOUR-ACCESS-KEY-ID',
+                                    :aws_secret_access_key => 'YOUR-SECRET-ACCESS-KEY',
+                                    :region => 'THE-REGION-YOU-WANT-TO-PROVISION-IN'
+                                    }
+```
+
+For a full example see [examples/aws/simple.rb](examples/aws/simple.rb).
+
 
 ### DigitalOcean
 
@@ -38,7 +52,9 @@ Update your `knife.rb` to contain your DigitalOcean API token and the driver:
 
 ```ruby
 driver 'fog:DigitalOcean'
-driver_options compute_options: { digitalocean_token: 'token' }
+driver_options compute_options: {
+                                  digitalocean_token: 'token'
+                                }
 ```
 
 For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
@@ -99,7 +115,7 @@ driver and script communicate using userMetadata so you cannot use metadata.
 
 For a full example see [examples/softlayer/simple.rb](examples/softlayer/simple.rb).
 
-###  Joyent
+### Joyent
 
 You'll need to update your `knife.rb` to work:
 
@@ -189,10 +205,9 @@ Chef Provisioning has two major abstractions: the machine resource, and drivers.
 
 You declare what your machines do (recipes, tags, etc.) with the `machine` resource, the fundamental unit of Chef Provisioning.  You will typically declare `machine` resources in a separate, OS/provisioning-independent file that declares the *topology* of your app--your machines and the recipes that will run on them.
 
-The machine resources from the [cluster.rb example](https://github.com/chef/chef-provisioning/blob/master/docs/examples/cluster.rb) are pretty straightforward.  Here's a copy/paste:
+The machine resources from the [cluster.rb example](https://github.com/chef/chef-provisioning/blob/master/docs/examples/cluster.rb) are pretty straightforward.  Here's a copy/paste, it'll create a database machine then one web server.
 
 ```ruby
-# Database!
 machine 'mario' do
   recipe 'postgresql'
   recipe 'mydb'
@@ -201,7 +216,6 @@ end
 
 num_webservers = 1
 
-# Web servers!
 1.upto(num_webservers) do |i|
   machine "luigi#{i}" do
     recipe 'apache'
