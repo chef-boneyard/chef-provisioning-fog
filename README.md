@@ -219,9 +219,9 @@ machine 'ubuntu-chef' do
     }
   )
 end
-```
 
 ```
+
 
 ### Cleaning up
 
