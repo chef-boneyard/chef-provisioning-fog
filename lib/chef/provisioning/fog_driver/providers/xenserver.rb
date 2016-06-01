@@ -17,6 +17,13 @@ class Chef
             bootstrap_options
           end
 
+          def ssh_options_for(machine_spec, machine_options, server)
+            { auth_methods: [ 'password' ],
+              timeout: (machine_options[:ssh_timeout] || 600),
+              password: machine_options[:ssh_password]
+            }.merge(machine_options[:ssh_options] || {})
+          end
+
           def self.compute_options_for(provider, id, config)
             new_compute_options = {}
             new_compute_options[:provider] = provider
