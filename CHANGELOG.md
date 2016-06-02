@@ -1,7 +1,22 @@
 # Change Log
 
-## [0.18.0](https://github.com/chef/chef-provisioning-fog/tree/0.18.0) (2016-03-30)
-[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.17.0...0.18.0)
+## [0.19.0](https://github.com/chef/chef-provisioning-fog/tree/0.19.0) (2016-06-02)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.18.0...0.19.0)
+
+**Closed issues:**
+
+- xenserver provider not working against xenserver 6.5 [\#183](https://github.com/chef/chef-provisioning-fog/issues/183)
+- \[openstack\] No Method Error: undefined method `status' [\#180](https://github.com/chef/chef-provisioning-fog/issues/180)
+
+**Merged pull requests:**
+
+- Added standard documentation for XenServer [\#186](https://github.com/chef/chef-provisioning-fog/pull/186) ([jjasghar](https://github.com/jjasghar))
+- Fix xenserver provider to be compatible with xenserver 6.5 [\#184](https://github.com/chef/chef-provisioning-fog/pull/184) ([chrodriguez](https://github.com/chrodriguez))
+- Support for winrm\_transport in openstack [\#181](https://github.com/chef/chef-provisioning-fog/pull/181) ([gshively11](https://github.com/gshively11))
+- User data windows [\#120](https://github.com/chef/chef-provisioning-fog/pull/120) ([bbgobie](https://github.com/bbgobie))
+
+## [v0.18.0](https://github.com/chef/chef-provisioning-fog/tree/v0.18.0) (2016-03-30)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.17.0...v0.18.0)
 
 **Fixed bugs:**
 
@@ -17,6 +32,7 @@
 
 **Merged pull requests:**
 
+- 0.18.0 [\#177](https://github.com/chef/chef-provisioning-fog/pull/177) ([jjasghar](https://github.com/jjasghar))
 - Adding ohai hints to drivers [\#176](https://github.com/chef/chef-provisioning-fog/pull/176) ([jjasghar](https://github.com/jjasghar))
 - AWS documentation [\#175](https://github.com/chef/chef-provisioning-fog/pull/175) ([jjasghar](https://github.com/jjasghar))
 - Added more to the testing frame work [\#174](https://github.com/chef/chef-provisioning-fog/pull/174) ([jjasghar](https://github.com/jjasghar))
@@ -36,7 +52,6 @@
 
 - \[softlayer\] NoMethodError: undefined method `status' [\#170](https://github.com/chef/chef-provisioning-fog/issues/170)
 - ea3ae05cb8150701ca26ae66052e57530415eff1 changes server.state to server.status for all fog drivers [\#161](https://github.com/chef/chef-provisioning-fog/issues/161)
-- \[softlayer\] create and delete storage with chef-provisioning-fog [\#151](https://github.com/chef/chef-provisioning-fog/issues/151)
 - \[softlayer\] create and delete networks with chef-provisioning-fog [\#150](https://github.com/chef/chef-provisioning-fog/issues/150)
 - machine names do not appear to be idempotent [\#145](https://github.com/chef/chef-provisioning-fog/issues/145)
 - Bootstrapping requires node to have internet access [\#122](https://github.com/chef/chef-provisioning-fog/issues/122)
