@@ -11,6 +11,19 @@ class Chef
             compute_options[:xenserver_username]
           end
 
+          def bootstrap_options_for(action_handler, machine_spec, machine_options)
+            bootstrap_options = super
+            bootstrap_options[:tags] = bootstrap_options[:tags].map {|k,v| "#{k}: #{v}" }
+            bootstrap_options
+          end
+
+          def ssh_options_for(machine_spec, machine_options, server)
+            { auth_methods: [ 'password' ],
+              timeout: (machine_options[:ssh_timeout] || 600),
+              password: machine_options[:ssh_password]
+            }.merge(machine_options[:ssh_options] || {})
+          end
+
           def self.compute_options_for(provider, id, config)
             new_compute_options = {}
             new_compute_options[:provider] = provider
@@ -57,19 +70,21 @@ class Chef
             end
             result
           end
-          
+
           def create_many_servers(num_servers, bootstrap_options, parallelizer)
             parallelizer.parallelize(1.upto(num_servers)) do |i|
-              server = compute.servers.new(bootstrap_options)
-              server.save auto_start: false
+              compute.default_template = bootstrap_options[:template] if bootstrap_options[:template]
+              raise 'No server can be created without a template, please set a template name as bootstrap_options' unless compute.default_template
+              server = compute.default_template.clone bootstrap_options[:name]
 
               if bootstrap_options[:affinity]
                 host = compute.hosts.all.select { |h| h.address == bootstrap_options[:affinity] }.first
                 if !host
                   raise "Host with ID #{bootstrap_options[:affinity]} not found."
                 end
-                server.set_attribute 'affinity', host.reference
+                server.affinity = host.reference
               end
+
 
               unless bootstrap_options[:memory].nil?
                 mem = (bootstrap_options[:memory].to_i * 1024 * 1024).to_s
@@ -86,6 +101,13 @@ class Chef
               attrs = {}
               unless bootstrap_options[:network].nil?
                 network = bootstrap_options[:network]
+                net_names = network[:vifs]
+                if net_names
+                  server.vifs.each {|x| x.destroy }
+                  compute.networks.select { |net| Array(net_names).include? net.name }.each do |net|
+                    compute.vifs.create vm: server, network: net, device: "0"
+                  end
+                end
                 attrs['vm-data/ip'] = network[:vm_ip] if network[:vm_ip]
                 attrs['vm-data/gw'] = network[:vm_gateway] if network[:vm_gateway]
                 attrs['vm-data/nm'] = network[:vm_netmask] if network[:vm_netmask]
@@ -94,6 +116,28 @@ class Chef
                 if !attrs.empty?
                   server.set_attribute 'xenstore_data', attrs
                 end
+              end
+
+              userdevice = 1
+              (bootstrap_options[:additional_disks] || Hash.new).each do |name, data|
+                sr_name = data[:sr]
+                storage_repository = compute.storage_repositories.find { |sr| sr.name == sr_name }
+                raise 'You must specify sr name to add additional disks' unless storage_repository
+                raise 'You must specify size to add additional disk' unless data[:size]
+
+                gb   = 1_073_741_824
+                size = data[:size].to_i * gb
+
+
+                vdi_params = { name: name}
+                vdi_params[:storage_repository] = storage_repository
+                vdi_params[:description] == data[:description] if data[:description]
+                vdi_params[:virtual_size] = size.to_s
+                vdi = compute.vdis.create vdi_params
+
+                compute.vbds.create vm: server, vdi: vdi, userdevice: userdevice.to_s, bootable: false
+                userdevice += 1
+
               end
 
               server.provision
@@ -127,31 +171,33 @@ require 'fog/compute/models/server'
 module Fog
   module Compute
     class XenServer
-      class Server < Fog::Compute::Server
-        def id
-          uuid
-        end
+      module Models
+        class Server < Fog::Compute::Server
+          def id
+            uuid
+          end
 
-        def state
-          attributes[:power_state]
-        end
+          def state
+            attributes[:power_state]
+          end
 
-        def public_ip_address
-          if xenstore_data['vm-data/ip']
-            xenstore_data['vm-data/ip']
-          else
-            wait_for { tools_installed? }
-            if tools_installed?
-              guest_metrics.networks.first[1]
+          def public_ip_address
+            if xenstore_data['vm-data/ip']
+              xenstore_data['vm-data/ip']
             else
-              fail 'Unable to return IP address. Virtual machine does not ' \
-              'have XenTools installed or a timeout occurred.'
+              wait_for { tools_installed? }
+              if tools_installed?
+                guest_metrics.networks.first[1]
+              else
+                fail 'Unable to return IP address. Virtual machine does not ' \
+                'have XenTools installed or a timeout occurred.'
+              end
             end
           end
-        end
 
-        def ready?
-          running?
+          def ready?
+            running?
+          end
         end
       end
     end
