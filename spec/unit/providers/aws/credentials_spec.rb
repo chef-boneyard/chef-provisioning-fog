@@ -2,7 +2,7 @@ require 'chef/provisioning/fog_driver/providers/aws/credentials'
 
 describe Chef::Provisioning::FogDriver::Providers::AWS::Credentials do
   let(:credentials) { Chef::Provisioning::FogDriver::Providers::AWS::Credentials.new }
-  
+
   describe "#load_inis" do
     let(:aws_credentials_ini_file) { File.join(File.expand_path('../../../../support', __FILE__), 'aws/ini-file.ini') }
 
@@ -15,7 +15,7 @@ describe Chef::Provisioning::FogDriver::Providers::AWS::Credentials do
     end
 
     it "should load the correct values" do
-      expect(credentials['default'][:aws_access_key_id]).to eq "12345"
+      expect(credentials['default'][:aws_access_key_id]).to eq 12345
       expect(credentials['default'][:aws_secret_access_key]).to eq "abcde"
       expect(credentials['default'][:region]).to eq "us-east-1"
       expect(credentials['default'][:aws_session_token]).to eq "mysecret"
