@@ -134,7 +134,7 @@ module FogDriver
         if machine_options[:is_windows]
           Chef::Log.debug('Attaching WinRM data for user data.')
           # Enable WinRM basic auth, HTTP and open the firewall
-          bootstrap_options[:user_data] = user_data
+          bootstrap_options[:user_data] = user_data if bootstrap_options[:user_data].nil?
         end
         bootstrap_options.delete(:tags) # we handle these separately for performance reasons
         bootstrap_options
