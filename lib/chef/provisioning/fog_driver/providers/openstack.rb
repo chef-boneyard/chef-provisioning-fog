@@ -18,6 +18,25 @@ module FogDriver
         super(machine_spec, machine_options)
       end
 
+      def create_winrm_transport(machine_spec, machine_options, server)
+        if machine_options[:winrm].nil?
+          fail "You must provide winrm settings in machine_options to use the winrm transport!"
+        end
+        remote_host = determine_remote_host machine_spec, server
+        Chef::Log::info("Connecting to server #{remote_host}")
+        port = machine_options[:winrm][:port] || 5985
+        endpoint = "http://#{remote_host}:#{port}/wsman"
+        type = machine_options[:winrm][:type] || :negotiate
+        decrypted_password = machine_options[:winrm][:password] || ''
+        options = {
+            :user => machine_options[:winrm][:username] || 'Administrator',
+            :pass => decrypted_password,
+            :disable_sspi => !!machine_options[:winrm][:disable_sspi] || false,
+            :basic_auth_only => !!machine_options[:winrm][:basic_auth_only] || false
+        }
+        Chef::Provisioning::Transport::WinRM.new(endpoint, type, options, {})
+      end
+
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
         new_compute_options[:provider] = provider
@@ -114,6 +133,32 @@ module FogDriver
           compute.images.get(image_spec.reference[:image_id]) || compute.images.get(image_spec.reference['image_id'])
         else
           nil
+        end
+      end
+
+      def determine_remote_host(machine_spec, server)
+        transport_address_location = (machine_spec.reference['transport_address_location'] || :none).to_sym
+
+        if machine_spec.reference['use_private_ip_for_ssh']
+          # The machine_spec has the old config key, lets update it - a successful chef converge will save the machine_spec
+          # TODO in 2.0 get rid of this update
+          machine_spec.reference.delete('use_private_ip_for_ssh')
+          machine_spec.reference['transport_address_location'] = :private_ip
+          server.private_ip_address
+        elsif transport_address_location == :ip_addresses
+          server.ip_addresses.first
+        elsif transport_address_location == :private_ip
+          server.private_ip_address
+        elsif transport_address_location == :public_ip
+          server.public_ip_address
+        elsif !server.public_ip_address && server.private_ip_address
+          Chef::Log.warn("Server #{machine_spec.name} has no public floating_ip address.  Using private floating_ip '#{server.private_ip_address}'.  Set driver option 'transport_address_location' => :private_ip if this will always be the case ...")
+          server.private_ip_address
+        elsif server.public_ip_address
+          server.public_ip_address
+        else
+          raise "Server #{server.id} has no private or public IP address!"
+          # raise "Invalid 'transport_address_location'.  They can only be 'public_ip', 'private_ip', or 'ip_addresses'."
         end
       end
 
