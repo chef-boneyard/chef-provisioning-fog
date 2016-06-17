@@ -48,12 +48,12 @@ module FogDriver
         result = Cheffish::MergedConfig.new(new_config, config, new_defaults)
 
         new_compute_options[:openstack_auth_url] = id if (id && id != '')
-        credential = Fog.credentials
-
-        new_compute_options[:openstack_username] ||= credential[:openstack_username]
-        new_compute_options[:openstack_api_key] ||= credential[:openstack_api_key]
-        new_compute_options[:openstack_auth_url] ||= credential[:openstack_auth_url]
-        new_compute_options[:openstack_tenant] ||= credential[:openstack_tenant]
+        
+        credential = Fog.credentials.find_all{ |k,v|
+          k.to_s.start_with?('openstack') }
+        credential.each { |k,v|
+          new_compute_options[k] ||= v
+        }
 
         id = result[:driver_options][:compute_options][:openstack_auth_url]
 
