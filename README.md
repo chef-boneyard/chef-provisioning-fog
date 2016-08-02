@@ -57,6 +57,25 @@ driver_options :compute_options => {
                                    }
 ```
 
+[fog](http://fog.io) 1.38.0 (Newest release) has an issue with DigitalOcean. If
+you want to use DigitalOcean and `chef-provisioning-fog` you need to down grade
+your fog gem.
+
+```shell
+$ gem install fog --version 1.37.0
+Successfully installed fog-1.37.0
+Parsing documentation for fog-1.37.0
+$ gem uninstall fog
+
+Select gem to uninstall:
+ 1. fog-1.37.0
+ 2. fog-1.38.0
+ 3. All versions
+> 2
+Successfully uninstalled fog-1.38.0
+$
+```
+
 For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
 
 ### Google Compute Engine
