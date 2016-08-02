@@ -1,6 +1,6 @@
 # Change Log
 
-## [v0.19.1](https://github.com/chef/chef-provisioning-fog/tree/v0.19.1)
+## [v0.19.1](https://github.com/chef/chef-provisioning-fog/tree/v0.19.1) (2016-08-02)
 
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.19.0...v0.19.1)
 
