@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.email = ['jkeiser@getchef.com', 'hh@vulk.co', 't@vulk.co', 'w@vulk.co','jj@chef.io']
   s.homepage = 'https://github.com/opscode/chef-provisioning-fog'
 
-  s.add_dependency 'chef-provisioning', '~> 1.0'
+  s.add_dependency 'chef-provisioning', '>= 1.0', '< 3.0'
   s.add_dependency 'fog', '>= 1.37.0'
   s.add_dependency 'google-api-client', "~> 0.8.0"
   s.add_dependency 'fog-softlayer' , '~> 1.1.0'
