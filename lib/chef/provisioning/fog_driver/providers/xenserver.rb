@@ -56,9 +56,9 @@ class Chef
             end
           end
 
-          def servers_for(machine_specs)
+          def servers_for(specs_and_options)
             result = {}
-            machine_specs.each do |machine_spec|
+            specs_and_options.each do |machine_spec, _machine_options|
               if machine_spec.reference
                 if machine_spec.reference['driver_url'] != driver_url
                   raise "Switching a machine's driver from #{machine_spec.reference['driver_url']} to #{driver_url} for is not currently supported!  Use machine :destroy and then re-create the machine on the new driver."
@@ -209,7 +209,7 @@ end
 # Otherwise machine_batch will fail since parallel calls will clash.
 #
 # See http://ruby-doc.org//stdlib-2.1.1//libdoc/xmlrpc/rdoc/XMLRPC/Client.html
-# 
+#
 module Fog
   module XenServer
     class Connection

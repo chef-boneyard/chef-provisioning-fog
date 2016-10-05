@@ -104,9 +104,9 @@ class Chef
               end
           end
 
-          def servers_for(machine_specs)
+          def servers_for(specs_and_options)
             result = {}
-            machine_specs.each do |machine_spec|
+            specs_and_options.each do |machine_spec, _machine_options|
               result[machine_spec] = server_for(machine_spec)
             end
 

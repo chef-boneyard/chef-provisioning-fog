@@ -24,7 +24,7 @@ class Chef
       end
 
       def with_fog_vcair_driver(driver_options = nil, &block)
-        with_fog_driver('Vcair', driver_options, &block)
+        with_fog_driver('vcair', driver_options, &block)
       end
 
     end

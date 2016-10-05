@@ -1,38 +1,28 @@
-#   fog:Vcair:<client id>
+#   fog:vcair:<vcair host>
 class Chef
   module Provisioning
     module FogDriver
       module Providers
         class Vcair < FogDriver::Driver
-          Driver.register_provider_class('Vcair', FogDriver::Providers::Vcair)
+          Driver.register_provider_class('vcair', FogDriver::Providers::Vcair)
 
           def creator
-            Chef::Config[:knife][:vcair_username]
+            driver_options[:username]
+          end
+
+          def initialize(driver_url, config)
+            super(driver_url, config)
+
+            @auth_params = {provider: 'vclouddirector'}
+            _fog, _vcair, @auth_params[:vcloud_director_host] = driver_url.split(':', 3)
+            @auth_params[:vcloud_director_username] = "#{driver_options[:username]}@#{driver_options[:org]}"
+            @auth_params[:vcloud_director_password] = driver_options[:password]
+            @auth_params[:vcloud_director_show_progress] = driver_options[:show_progress] || false
+            Chef::Log.debug('Initialized driver for vcair')
           end
 
           def compute
             @compute ||= begin
-                           Chef::Log.debug("vcair_username #{Chef::Config[:knife][:vcair_username]}")
-                           Chef::Log.debug("vcair_org #{Chef::Config[:knife][:vcair_org]}")
-                           Chef::Log.debug("vcair_api_host #{Chef::Config[:knife][:vcair_api_host]}")
-                           #Chef::Log.debug("vcair_api_version #{Chef::Config[:knife][:vcair_api_version]}")
-                           Chef::Log.debug("vcair_show_progress #{Chef::Config[:knife][:vcair_show_progress]}")
-
-                           username = [
-                             Chef::Config[:knife][:vcair_username],
-                             Chef::Config[:knife][:vcair_org]
-                           ].join('@')
-
-                           @auth_params = {
-                             :provider => 'vclouddirector', #TODO: see compute_options_for, and grab else where
-                             :vcloud_director_username => username,
-                             :vcloud_director_password => Chef::Config[:knife][:vcair_password],
-                             :vcloud_director_host => Chef::Config[:knife][:vcair_api_host],
-                             #:vcair_api_host => Chef::Config[:knife][:vcair_api_host],
-                             :vcloud_director_api_version => Chef::Config[:knife][:vcair_api_version],
-                             :vcloud_director_show_progress => false
-                           }
-
                            Fog::Compute.new(@auth_params)
                          rescue Excon::Errors::Unauthorized => e
                            error_message = "Connection failure, please check your username and password."
@@ -52,25 +42,36 @@ class Chef
               vm=nil
               begin
                 begin
+                  Chef::Log.debug('Creating vApp...')
                   instantiate(clean_bootstrap_options)
+                  Chef::Log.debug('Created vApp')
                 rescue Fog::Errors::Error => e
                   unless e.minor_error_code == "DUPLICATE_NAME"
                     # if it's already there, just use the current one
                     raise e
                   end
+                  Chef::Log.warn('Found existing vApp with the same name!')
                 end
+                vdc = vdc(clean_bootstrap_options)
 
-                vapp = vdc.vapps.get_by_name(bootstrap_options[:name])
-                vm = vapp.vms.find {|v| v.vapp_name == bootstrap_options[:name]}
+                Chef::Log.debug("Searching for #{bootstrap_options[:name]}...")
+                vapp = vdc.vapps.get_by_name(clean_bootstrap_options[:name])
+                raise "Couldn't find vApp #{bootstrap_options[:name]} that was just created!" if vapp.nil?
+                vm = vapp.vms.find {|v| v.vapp_name == clean_bootstrap_options[:name]}
+                raise "No VMs found in vApp!" if vm.nil?
+                Chef::Log.debug("Found #{vm.name}")
                 update_customization(clean_bootstrap_options, vm)
 
                 if bootstrap_options[:cpus]
-                  vm.cpu = bootstrap_options[:cpus]
+                  vm.cpu = clean_bootstrap_options[:cpus]
                 end
                 if bootstrap_options[:memory]
-                  vm.memory = bootstrap_options[:memory]
+                  vm.memory = clean_bootstrap_options[:memory]
                 end
-                update_network(bootstrap_options, vapp, vm)
+
+                Chef::Log.debug("Updating network for #{vm.name}...")
+                update_network(clean_bootstrap_options, vapp, vm)
+                Chef::Log.debug("Updated network for #{vm.name}")
 
               rescue Excon::Errors::BadRequest => e
                 response = Chef::JSONCompat.from_json(e.response.body)
@@ -117,9 +118,10 @@ class Chef
           end
 
 
-          def server_for(machine_spec)
+          def server_for(action_handler, machine_spec, machine_options)
+            bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
             if machine_spec.location
-              vapp = vdc.vapps.get_by_name(machine_spec.name)
+              vapp = vdc(bootstrap_options).vapps.get_by_name(machine_spec.name)
 
               server = unless vapp.nil?
                          unless vapp.vms.first.nil?
@@ -131,10 +133,10 @@ class Chef
             end
           end
 
-          def servers_for(machine_specs)
+          def servers_for(specs_and_options)
             result = {}
-            machine_specs.each do |machine_spec|
-              server_for(machine_spec)
+            specs_and_options.each do |machine_spec, machine_options|
+              result[machine_spec] = server_for(nil, machine_spec, machine_options)
             end
             result
           end
@@ -171,7 +173,7 @@ class Chef
           end
 
           def ready_machine(action_handler, machine_spec, machine_options)
-            server = server_for(machine_spec)
+            server = server_for(action_handler, machine_spec, machine_options)
             if server.nil?
               raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
             end
@@ -207,24 +209,34 @@ class Chef
           end
 
           def org
-            @org ||= compute.organizations.get_by_name(Chef::Config[:knife][:vcair_org])
+            @org ||= compute.organizations.get_by_name(driver_options[:org])
           end
 
-          def vdc
-            if Chef::Config[:knife][:vcair_vdc]
-              @vdc ||= org.vdcs.get_by_name(Chef::Config[:knife][:vcair_vdc])
+          def vdc(bootstrap_options)
+            if bootstrap_options[:vdc]
+              @vdc ||= org.vdcs.get_by_name(bootstrap_options[:vdc])
+              raise "VDC #{vdc_name} not found" unless @vdc
             else
               @vdc ||= org.vdcs.first
+              raise 'No VDC found' unless @vdc
             end
+
+            Chef::Log.debug("VDC set to #{@vdc.name}")
+            @vdc
           end
 
-          def net
-            if Chef::Config[:knife][:vcair_net]
-              @net ||= org.networks.get_by_name(Chef::Config[:knife][:vcair_net])
+          def net(bootstrap_options)
+            if bootstrap_options[:net]
+              @net ||= org.networks.get_by_name(bootstrap_options[:net])
+              raise "Network #{bootstrap_options[:net]} not found" unless @net
             else
               # Grab first non-isolated (bridged, natRouted) network
               @net ||= org.networks.find { |n| n if !n.fence_mode.match("isolated") }
+              raise 'No non-isolated network found' unless @net
             end
+
+            Chef::Log.debug("Network set to #{@net.name}")
+            @net
           end
 
           def template(bootstrap_options)
@@ -239,18 +251,17 @@ class Chef
           end
 
           def instantiate(bootstrap_options)
-            begin
-              #node_name = config_value(:chef_node_name)
-              node_name = bootstrap_options[:name]
-              template(bootstrap_options).instantiate(
-                node_name,
-                vdc_id: vdc.id,
-                network_id: net.id,
-                description: "id:#{node_name}")
-              #rescue CloudExceptions::ServerCreateError => e
-            rescue => e
-              raise e
-            end
+            #node_name = config_value(:chef_node_name)
+            node_name = bootstrap_options[:name]
+            vdc = vdc(bootstrap_options)
+            net = net(bootstrap_options)
+
+            template(bootstrap_options).instantiate(
+              node_name,
+              vdc_id: vdc.id,
+              network_id: net.id,
+              description: "id:#{node_name}")
+            #rescue CloudExceptions::ServerCreateError => e
           end
 
           # Create a WinRM transport for a vCloud Air Vapp VM instance
@@ -276,6 +287,7 @@ class Chef
           end
 
           def update_customization(bootstrap_options, server)
+            Chef::Log.debug("Customizing vApp: #{server.name}")
             ## Initialization before first power on.
             custom=server.customization
 
@@ -291,9 +303,9 @@ class Chef
                                          end
             password = case bootstrap_options[:protocol]
                        when 'ssh'
-                         bootstrap_options[:ssh_options][:password]
+                         bootstrap_options[:ssh_options][:password] unless bootstrap_options[:ssh_options].nil?
                        when 'winrm'
-                         bootstrap_options[:winrm_options][:password]
+                         bootstrap_options[:winrm_options][:password] unless bootstrap_options[:winrm_options].nil?
                        end
 
             if password
@@ -318,6 +330,7 @@ class Chef
             custom.computer_name = bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
             custom.enabled = true
             custom.save
+            Chef::Log.debug("vApp customized: #{server.name}")
           end
 
           ## vCloud Air
@@ -331,7 +344,11 @@ class Chef
             #vapp = vdc.vapps.get_by_name(bootstrap_options[:name])
             #vm = vapp.vms.find {|v| v.vapp_name == bootstrap_options[:name]}
             return if vm.ip_address != "" # return if ip address is set, as this isn't a new VM
+            Chef::Log.debug('No IP address found.  Must be a new VM.')
+            net = net(bootstrap_options)
+            Chef::Log.debug("Searching for network: #{net.name}")
             nc = vapp.network_config.find { |netc| netc if netc[:networkName].match(net.name) }
+            Chef::Log.debug("Found network configuration: #{nc}")
             networks_config = [nc]
             section = {PrimaryNetworkConnectionIndex: 0}
             section[:NetworkConnection] = networks_config.compact.each_with_index.map do |network, i|
@@ -360,23 +377,24 @@ class Chef
             compute.process_task(nc_task)
           end
 
-          def bootstrap_options_for(action_handler, machine_spec, machine_options)
-            bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
+          def self.bootstrap_options_for(action_handler, machine_spec, machine_options)
+            bootstrap_options = machine_options.key?(:bootstrap_options) ? machine_options[:bootstrap_options] : {}
+            bootstrap_options[:name] = machine_spec.name unless machine_spec.nil?
 
-            bootstrap_options[:tags]  = default_tags(machine_spec, bootstrap_options[:tags] || {})
-            bootstrap_options[:name] ||= machine_spec.name
-
-            bootstrap_options = bootstrap_options.merge(machine_options.configs[1])
             bootstrap_options
           end
 
           def destroy_machine(action_handler, machine_spec, machine_options)
-            server = server_for(machine_spec)
+            server = server_for(action_handler, machine_spec, machine_options)
+            Chef::Log.info("Destroying machine #{machine_spec.name}...")
+            bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
+            vdc = vdc(bootstrap_options)
             if server && server.status != 'archive' # TODO: does vCloud Air do archive?
               action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
                 #NOTE: currently doing 1 vm for 1 vapp
                 vapp = vdc.vapps.get_by_name(machine_spec.name)
                 if vapp
+                  Chef::Log.debug("Found vApp #{machine_spec.name}")
                   vapp.power_off
                   vapp.undeploy
                   vapp.destroy
