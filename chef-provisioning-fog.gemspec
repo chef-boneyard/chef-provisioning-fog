@@ -17,6 +17,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'google-api-client', "~> 0.8.0"
   s.add_dependency 'fog-softlayer' , '~> 1.1.0'
   s.add_dependency 'fog-digitalocean'
+  s.add_dependency 'fog-scaleway'
   s.add_dependency 'retryable'
 
   s.add_development_dependency 'rspec'

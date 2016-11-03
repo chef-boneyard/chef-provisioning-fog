@@ -483,7 +483,6 @@ module FogDriver
           end
           server.reload
         end
-
       end
     end
 

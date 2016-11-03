@@ -27,6 +27,10 @@ class Chef
         with_fog_driver('Vcair', driver_options, &block)
       end
 
+      def fog_scw_driver(driver_options = nil, &block)
+        with_fog_driver('Scaleway', driver_options, &block)
+      end
+
     end
   end
 end

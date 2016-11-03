@@ -210,6 +210,24 @@ with_driver "fog:XenServer:<XEN-SERVER-IP/NAME>", compute_options: {
 
 For a full example see [examples/xenserver/simple.rb](examples/xenserver/simple.rb).
 
+### Scaleway
+
+You should configure the driver with your credentials or :
+
+``` ruby
+with_driver "fog:Scaleway:Your-Organisation-UUID:region", compute_options: {
+  scalewat_token: 'your-api-token',
+}
+```
+
+or just use the fog configuration (~/.fog):
+
+``` ruby
+with_driver 'fog:Scaleway'
+```
+
+For full examples, see [examples/scaleway](examples/scaleway).
+
 ### Cleaning up
 
 ```ruby
