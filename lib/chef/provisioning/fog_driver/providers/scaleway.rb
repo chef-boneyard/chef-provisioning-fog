@@ -43,9 +43,26 @@ module FogDriver
       def bootstrap_options_for(action_handler, machine_spec, machine_options)
         opts = super
         opts[:tags] = opts[:tags].map { |key, value| [key, value].join('=') }
+
+        # Let's fetch the id of the volumes if the user didn't provide it
+        # Which probably means they were created in chef
+        if opts[:volumes]
+          managed_entry_store = machine_spec.managed_entry_store
+          volumes = Marshal.load(Marshal.dump(opts[:volumes]))
+
+          volumes.each do |index, volume|
+            unless volume[:id]
+              volume_spec = managed_entry_store.get(:volume, volume[:name])
+              unless volume_spec
+                raise "Volume #{volume[:name]} unknown, create it or provide its id"
+              end
+              volume[:id] = volume_spec.reference['id']
+            end
+          end
+          opts[:volumes] = volumes
+        end
         opts
       end
-
 
       def destroy_machine(action_handler, machine_spec, machine_options)
         server = server_for(machine_spec)
@@ -168,6 +185,61 @@ module FogDriver
           public_ips << server.public_ip.address if server.public_ip
         end
         public_ips
+      end
+
+
+      def create_volume(action_handler, volume_spec, volume_options)
+        # Prevent destructive operations on volume_options.
+        clean_volume_options = Marshal.load(Marshal.dump(volume_options))
+
+        volume_spec.reference ||= {}
+        volume_spec.reference.update(
+          'driver_url' => driver_url,
+          'driver_version' => FogDriver::VERSION,
+          'creator' => creator,
+          'allocated_at' => Time.now.to_i,
+        )
+
+        description = ["Creating volume #{volume_spec.name}"]
+        volume_options.each { |k, v| description << "  #{k}: #{v.inspect}"}
+
+        action_handler.report_progress description
+        if action_handler.should_perform_actions
+          clean_volume_options['name'] = volume_spec.name
+
+          volume = compute.volumes.create(clean_volume_options)
+
+          volume_spec.reference.update(
+            'id' => volume.id,
+            'volume_type' => volume.volume_type,
+            'size' => volume.size
+          )
+          volume_spec.save(action_handler)
+          action_handler.performed_action "volume #{volume_spec.name} created as #{volume.id} on #{driver_url}"
+        end
+      end
+
+      def destroy_volume(action_handler, volume_spec, volume_options)
+        volume = volume_for(volume_spec)
+
+        if volume && action_handler.should_perform_actions
+          begin
+            msg = "destroyed volume #{volume_spec.name} at #{driver_url}"
+            action_handler.perform_action msg do
+              volume.destroy
+              volume_spec.reference = nil
+              volume_spec.save(action_handler)
+            end
+          rescue Fog::Scaleway::Compute::InvalidRequestError => e
+            Chef::Log.error "Unable to destroy volume #{volume_spec.name} : #{e.message}"
+          end
+        end
+      end
+
+      def volume_for(volume_spec)
+        if volume_spec.reference
+          compute.volumes.get(volume_spec.reference['id'])
+        end
       end
     end
   end
