@@ -215,7 +215,7 @@ class Chef
           def vdc(bootstrap_options)
             if bootstrap_options[:vdc]
               @vdc ||= org.vdcs.get_by_name(bootstrap_options[:vdc])
-              raise "VDC #{vdc_name} not found" unless @vdc
+              raise "VDC #{bootstrap_options[:vdc]} not found" unless @vdc
             else
               @vdc ||= org.vdcs.first
               raise 'No VDC found' unless @vdc
