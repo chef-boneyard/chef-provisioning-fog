@@ -325,9 +325,13 @@ class Chef
 
             # DNS and Windows want AlphaNumeric and dashes for hostnames
             # Windows can only handle 15 character hostnames
-            # TODO: only change name for Windows!
-            #c.computer_name = config_value(:chef_node_name).gsub(/\W/,"-").slice(0..14)
-            custom.computer_name = bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
+            custom.computer_name = case server.operating_system
+                                   when /Windows/
+                                     bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
+                                   else
+                                     bootstrap_options[:name]
+                                   end
+
             custom.enabled = true
             custom.save
             Chef::Log.debug("vApp customized: #{server.name}")
