@@ -240,14 +240,19 @@ class Chef
           end
 
           def template(bootstrap_options)
-            # TODO: find by catalog item ID and/or NAME
-            # TODO: add option to search just public and/or private catalogs
-
-            #TODO: maybe make a hash for caching
-            org.catalogs.map do |cat|
-              #cat.catalog_items.get_by_name(config_value(:image))
-              cat.catalog_items.get_by_name(bootstrap_options[:image_name])
-            end.compact.first
+            # If we specify a catalog name, search for the image in it,
+            # otherwise return the first image we find in any catalog.
+            if bootstrap_options[:catalog_name].nil?
+              #TODO: maybe make a hash for caching
+              org.catalogs.map do |cat|
+                #cat.catalog_items.get_by_name(config_value(:image))
+                cat.catalog_items.get_by_name(bootstrap_options[:image_name])
+              end.compact.first
+            else
+              catalog = org.catalogs.get_by_name(bootstrap_options[:catalog_name])
+              raise "No catalog named #{bootstrap_options[:catalog_name]} could be found!" if catalog.nil?
+              catalog.catalog_items.get_by_name(bootstrap_options[:image_name])
+            end
           end
 
           def instantiate(bootstrap_options)
