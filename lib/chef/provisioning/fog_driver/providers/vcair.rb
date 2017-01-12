@@ -215,7 +215,7 @@ class Chef
           def vdc(bootstrap_options)
             if bootstrap_options[:vdc]
               @vdc ||= org.vdcs.get_by_name(bootstrap_options[:vdc])
-              raise "VDC #{vdc_name} not found" unless @vdc
+              raise "VDC #{bootstrap_options[:vdc]} not found" unless @vdc
             else
               @vdc ||= org.vdcs.first
               raise 'No VDC found' unless @vdc
@@ -240,14 +240,19 @@ class Chef
           end
 
           def template(bootstrap_options)
-            # TODO: find by catalog item ID and/or NAME
-            # TODO: add option to search just public and/or private catalogs
-
-            #TODO: maybe make a hash for caching
-            org.catalogs.map do |cat|
-              #cat.catalog_items.get_by_name(config_value(:image))
-              cat.catalog_items.get_by_name(bootstrap_options[:image_name])
-            end.compact.first
+            # If we specify a catalog name, search for the image in it,
+            # otherwise return the first image we find in any catalog.
+            if bootstrap_options[:catalog_name].nil?
+              #TODO: maybe make a hash for caching
+              org.catalogs.map do |cat|
+                #cat.catalog_items.get_by_name(config_value(:image))
+                cat.catalog_items.get_by_name(bootstrap_options[:image_name])
+              end.compact.first
+            else
+              catalog = org.catalogs.get_by_name(bootstrap_options[:catalog_name])
+              raise "No catalog named #{bootstrap_options[:catalog_name]} could be found!" if catalog.nil?
+              catalog.catalog_items.get_by_name(bootstrap_options[:image_name])
+            end
           end
 
           def instantiate(bootstrap_options)
@@ -325,9 +330,13 @@ class Chef
 
             # DNS and Windows want AlphaNumeric and dashes for hostnames
             # Windows can only handle 15 character hostnames
-            # TODO: only change name for Windows!
-            #c.computer_name = config_value(:chef_node_name).gsub(/\W/,"-").slice(0..14)
-            custom.computer_name = bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
+            custom.computer_name = case server.operating_system
+                                   when /Windows/
+                                     bootstrap_options[:name].gsub(/\W/,"-").slice(0..14)
+                                   else
+                                     bootstrap_options[:name]
+                                   end
+
             custom.enabled = true
             custom.save
             Chef::Log.debug("vApp customized: #{server.name}")
