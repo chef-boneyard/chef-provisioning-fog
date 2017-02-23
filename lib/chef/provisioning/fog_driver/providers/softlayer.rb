@@ -39,7 +39,7 @@ class Chef
             [result, id]
           end
 
-          def bootstrap_options_for(action_handler, machine_spec, machine_options)
+          def bootstrap_options_for(machine_spec, machine_options)
             # probably best to only ADD options here since super class looks
             # for some values; for example, :key_name doesn't get saved to
             # chef_provisioning.reference if you remove it here.

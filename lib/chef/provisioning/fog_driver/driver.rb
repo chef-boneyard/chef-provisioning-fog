@@ -316,7 +316,7 @@ module FogDriver
         'allocated_at' => Time.now.to_i
       )
 
-        bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
+        bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
         machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
         by_bootstrap_options[bootstrap_options] ||= []
         by_bootstrap_options[bootstrap_options] << machine_spec
@@ -582,7 +582,7 @@ module FogDriver
       'chef_default'
     end
 
-    def bootstrap_options_for(action_handler, machine_spec, machine_options)
+    def bootstrap_options_for(machine_spec, machine_options)
       bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
       bootstrap_options[:tags]  = default_tags(machine_spec, bootstrap_options[:tags] || {})

@@ -11,7 +11,7 @@ class Chef
             compute_options[:xenserver_username]
           end
 
-          def bootstrap_options_for(action_handler, machine_spec, machine_options)
+          def bootstrap_options_for(machine_spec, machine_options)
             bootstrap_options = super
             bootstrap_options[:tags] = bootstrap_options[:tags].map {|k,v| "#{k}: #{v}" }
             bootstrap_options
