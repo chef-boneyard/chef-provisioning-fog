@@ -8,5 +8,5 @@ group :development do
   gem 'guard-rspec'
   gem 'rb-readline'
   gem 'simplecov'
-  gem 'cheffish', '~> 4.0.0'
+  gem 'winrm-elevated'
 end
