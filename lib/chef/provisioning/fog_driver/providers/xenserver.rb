@@ -48,7 +48,7 @@ class Chef
             [result, id]
           end
 
-          def server_for(machine_spec)
+          def server_for(machine_spec, machine_options)
             if machine_spec.reference
               compute.servers.get(compute.get_by_uuid(machine_spec.reference['server_id'], 'VM'))
             else

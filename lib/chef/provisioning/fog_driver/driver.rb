@@ -200,7 +200,7 @@ module FogDriver
     end
 
     def ready_machine(action_handler, machine_spec, machine_options)
-      server = server_for(machine_spec)
+      server = server_for(machine_spec, machine_options)
       if server.nil?
         raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
       end
@@ -237,7 +237,7 @@ module FogDriver
     end
 
     def destroy_machine(action_handler, machine_spec, machine_options)
-      server = server_for(machine_spec)
+      server = server_for(machine_spec, machine_options)
       if server
         action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.reference['server_id']} at #{driver_url})" do
           server.destroy
@@ -249,7 +249,7 @@ module FogDriver
     end
 
     def stop_machine(action_handler, machine_spec, machine_options)
-      server = server_for(machine_spec)
+      server = server_for(machine_spec, machine_options)
       if server
         action_handler.perform_action "stop machine #{machine_spec.name} (#{server.id} at #{driver_url})" do
           server.stop
@@ -535,7 +535,7 @@ module FogDriver
       end
     end
 
-    def server_for(machine_spec)
+    def server_for(machine_spec, machine_options)
       if machine_spec.reference
         compute.servers.get(machine_spec.reference['server_id'])
       else
@@ -604,7 +604,7 @@ module FogDriver
     end
 
     def machine_for(machine_spec, machine_options, server = nil)
-      server ||= server_for(machine_spec)
+      server ||= server_for(machine_spec, machine_options)
       if !server
         raise "Server for node #{machine_spec.name} has not been created!"
       end

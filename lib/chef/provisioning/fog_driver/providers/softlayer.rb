@@ -82,7 +82,7 @@ class Chef
             []
           end
 
-          def server_for(machine_spec)
+          def server_for(machine_spec, machine_options)
               if machine_spec.reference
                   id = machine_spec.reference['server_id']
                   if id and 0 != id
@@ -106,8 +106,8 @@ class Chef
 
           def servers_for(specs_and_options)
             result = {}
-            specs_and_options.each do |machine_spec, _machine_options|
-              result[machine_spec] = server_for(machine_spec)
+            specs_and_options.each do |machine_spec, machine_options|
+              result[machine_spec] = server_for(machine_spec, machine_options)
             end
 
             result

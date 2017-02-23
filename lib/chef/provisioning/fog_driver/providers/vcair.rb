@@ -118,8 +118,8 @@ class Chef
           end
 
 
-          def server_for(action_handler, machine_spec, machine_options)
-            bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
+          def server_for(machine_spec, machine_options)
+            bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
             if machine_spec.location
               vapp = vdc(bootstrap_options).vapps.get_by_name(machine_spec.name)
 
@@ -136,7 +136,7 @@ class Chef
           def servers_for(specs_and_options)
             result = {}
             specs_and_options.each do |machine_spec, machine_options|
-              result[machine_spec] = server_for(nil, machine_spec, machine_options)
+              result[machine_spec] = server_for(machine_spec, machine_options)
             end
             result
           end
@@ -173,7 +173,7 @@ class Chef
           end
 
           def ready_machine(action_handler, machine_spec, machine_options)
-            server = server_for(action_handler, machine_spec, machine_options)
+            server = server_for(machine_spec, machine_options)
             if server.nil?
               raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
             end
@@ -386,7 +386,7 @@ class Chef
             compute.process_task(nc_task)
           end
 
-          def self.bootstrap_options_for(action_handler, machine_spec, machine_options)
+          def self.bootstrap_options_for(machine_spec, machine_options)
             bootstrap_options = machine_options.key?(:bootstrap_options) ? machine_options[:bootstrap_options] : {}
             bootstrap_options[:name] = machine_spec.name unless machine_spec.nil?
 
@@ -394,9 +394,9 @@ class Chef
           end
 
           def destroy_machine(action_handler, machine_spec, machine_options)
-            server = server_for(action_handler, machine_spec, machine_options)
+            server = server_for(machine_spec, machine_options)
             Chef::Log.info("Destroying machine #{machine_spec.name}...")
-            bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
+            bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
             vdc = vdc(bootstrap_options)
             if server && server.status != 'archive' # TODO: does vCloud Air do archive?
               action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
