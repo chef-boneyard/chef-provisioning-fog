@@ -108,24 +108,23 @@ class Chef
             # NOTE: vCloud Air Fog does not get server.status via http every time
             server.reload
 
-            if server.status == 'off' or server.status != 'on'
+            if server.status == 'off' || server.status != 'on'
               action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
                 server.power_on
-                machine_spec.location['started_at'] = Time.now.to_i
+                machine_spec.reference['started_at'] = Time.now.to_i
               end
               machine_spec.save(action_handler)
             end
           end
 
 
-          def server_for(machine_spec, machine_options)
-            bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
-            if machine_spec.location
-              vapp = vdc(bootstrap_options).vapps.get_by_name(machine_spec.name)
+          def server_for(machine_spec)
+            if machine_spec.reference
+              vapp = org.vdcs.get_by_name(machine_spec.reference['vdc']).vapps.get_by_name(machine_spec.name)
 
               server = unless vapp.nil?
                          unless vapp.vms.first.nil?
-                           vapp.vms.find{|vm| vm.id == machine_spec.location['server_id'] }
+                           vapp.vms.find{|vm| vm.id == machine_spec.reference['server_id'] }
                          end
                        end
             else
@@ -135,24 +134,25 @@ class Chef
 
           def servers_for(specs_and_options)
             result = {}
-            specs_and_options.each do |machine_spec, machine_options|
-              result[machine_spec] = server_for(machine_spec, machine_options)
+            specs_and_options.each do |machine_spec, _machine_options|
+              result[machine_spec] = server_for(machine_spec)
             end
             result
           end
 
-          def ssh_options_for(machine_spec, machine_options, server)
-            { auth_methods: [ 'password' ],
-              timeout: (machine_options[:ssh_timeout] || 600),
-              password: machine_options[:ssh_password]
-            }.merge(machine_options[:ssh_options] || {})
-          end
+          # def ssh_options_for(machine_spec, machine_options, server)
+          #   ssh_options = {
+          #     auth_methods: ['password'],
+          #     timeout: (machine_options[:ssh_timeout] || 600),
+          #     password: machine_options[:ssh_password]
+          #   }.merge(machine_options[:ssh_options] || {})
+          # end
 
           def create_ssh_transport(machine_spec, machine_options, server)
             ssh_options = ssh_options_for(machine_spec, machine_options, server)
-            username = machine_spec.location['ssh_username'] || default_ssh_username
+            username = machine_spec.reference['ssh_username'] || default_ssh_username
             options = {}
-            if machine_spec.location[:sudo] || (!machine_spec.location.has_key?(:sudo) && username != 'root')
+            if machine_spec.reference[:sudo] || (!machine_spec.reference.has_key?(:sudo) && username != 'root')
               options[:prefix] = 'sudo '
             end
 
@@ -167,16 +167,25 @@ class Chef
 
             #Enable pty by default
             options[:ssh_pty_enable] = true
-            options[:ssh_gateway] = machine_spec.location['ssh_gateway'] if machine_spec.location.has_key?('ssh_gateway')
+            options[:ssh_gateway] = machine_spec.reference['ssh_gateway'] if machine_spec.reference.has_key?('ssh_gateway')
 
             Transport::SSH.new(remote_host, username, ssh_options, options, config)
           end
 
           def ready_machine(action_handler, machine_spec, machine_options)
-            server = server_for(machine_spec, machine_options)
+            server = server_for(machine_spec)
             if server.nil?
               raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
             end
+
+            # Add some vCloud info to the machine_spec
+            bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
+            machine_spec.reference['vdc'] = vdc(bootstrap_options).name
+            machine_spec.reference['net'] = net(bootstrap_options).name
+
+            # Save the key and whether we're using sudo
+            machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options.has_key?(:key_name)
+            machine_spec.reference['sudo'] = bootstrap_options[:sudo] if bootstrap_options.has_key?(:sudo)
 
             # Start the server if needed, and wait for it to start
             start_server(action_handler, machine_spec, server)
@@ -192,7 +201,7 @@ class Chef
               wait_for_transport(action_handler, machine_spec, machine_options, server)
             rescue Fog::Errors::TimeoutError
               # Only ever reboot once, and only if it's been less than 10 minutes since we stopped waiting
-              if machine_spec.location['started_at'] || remaining_wait_time(machine_spec, machine_options) < -(10*60)
+              if machine_spec.reference['started_at'] || remaining_wait_time(machine_spec, machine_options) < -(10*60)
                 raise
               else
                 # Sometimes (on EC2) the machine comes up but gets stuck or has
@@ -275,7 +284,7 @@ class Chef
           # @param [Fog::Compute::Server] server A Fog mapping to the AWS instance
           # @return [ChefMetal::Transport::WinRM] A WinRM Transport object to talk to the server
           def create_winrm_transport(machine_spec, machine_options, server)
-            port = machine_spec.location['winrm_port'] || 5985
+            port = machine_spec.reference['winrm_port'] || 5985
             endpoint = "http://#{server.ip_address}:#{port}/wsman"
             type = :plaintext
 
@@ -394,12 +403,12 @@ class Chef
           end
 
           def destroy_machine(action_handler, machine_spec, machine_options)
-            server = server_for(machine_spec, machine_options)
+            server = server_for(machine_spec)
             Chef::Log.info("Destroying machine #{machine_spec.name}...")
             bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
             vdc = vdc(bootstrap_options)
             if server && server.status != 'archive' # TODO: does vCloud Air do archive?
-              action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.location['server_id']} at #{driver_url})" do
+              action_handler.perform_action "destroy machine #{machine_spec.name} (#{machine_spec.reference['server_id']} at #{driver_url})" do
                 #NOTE: currently doing 1 vm for 1 vapp
                 vapp = vdc.vapps.get_by_name(machine_spec.name)
                 if vapp
@@ -412,7 +421,7 @@ class Chef
                 end
               end
             end
-            machine_spec.location = nil
+            machine_spec.reference = nil
             strategy = convergence_strategy_for(machine_spec, machine_options)
             strategy.cleanup_convergence(action_handler, machine_spec)
           end
