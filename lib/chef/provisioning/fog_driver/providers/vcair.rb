@@ -35,6 +35,23 @@ class Chef
                          end
           end
 
+          # Overrides the parent method and adds some additional vCloud specific metadata
+          def create_servers(action_handler, specs_and_options, parallelizer, &block)
+
+            specs_and_options.each do |machine_spec, machine_options|
+              machine_spec.reference ||= {}
+              # Add some vCloud info to the machine_spec
+              bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
+              machine_spec.reference['vdc'] = vdc(bootstrap_options).name
+              machine_spec.reference['net'] = net(bootstrap_options).name
+
+              # Save the key and whether we're using sudo
+              machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options.has_key?(:key_name)
+              machine_spec.reference['sudo'] = bootstrap_options[:sudo] if bootstrap_options.has_key?(:sudo)
+            end
+
+            super
+          end
 
           def create_many_servers(num_servers, bootstrap_options, parallelizer)
             parallelizer.parallelize(1.upto(num_servers)) do |i|
@@ -120,6 +137,7 @@ class Chef
 
           def server_for(machine_spec)
             if machine_spec.reference
+              Chef::Log.debug("Checking for VDC #{machine_spec.reference['vdc']}...")
               vapp = org.vdcs.get_by_name(machine_spec.reference['vdc']).vapps.get_by_name(machine_spec.name)
 
               server = unless vapp.nil?
@@ -177,15 +195,6 @@ class Chef
             if server.nil?
               raise "Machine #{machine_spec.name} does not have a server associated with it, or server does not exist."
             end
-
-            # Add some vCloud info to the machine_spec
-            bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
-            machine_spec.reference['vdc'] = vdc(bootstrap_options).name
-            machine_spec.reference['net'] = net(bootstrap_options).name
-
-            # Save the key and whether we're using sudo
-            machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options.has_key?(:key_name)
-            machine_spec.reference['sudo'] = bootstrap_options[:sudo] if bootstrap_options.has_key?(:sudo)
 
             # Start the server if needed, and wait for it to start
             start_server(action_handler, machine_spec, server)

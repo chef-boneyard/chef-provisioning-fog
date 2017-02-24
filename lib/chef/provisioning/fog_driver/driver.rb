@@ -310,13 +310,13 @@ module FogDriver
           Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
         end
 
-      machine_spec.reference ||= {}
-      machine_spec.reference.update(
-        'driver_url' => driver_url,
-        'driver_version' => FogDriver::VERSION,
-        'creator' => creator,
-        'allocated_at' => Time.now.to_i
-      )
+        machine_spec.reference ||= {}
+        machine_spec.reference.update(
+          'driver_url' => driver_url,
+          'driver_version' => FogDriver::VERSION,
+          'creator' => creator,
+          'allocated_at' => Time.now.to_i
+        )
 
         bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
         machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
