@@ -659,6 +659,8 @@ module FogDriver
         IO.read(bootstrap_options[:key_path])
       elsif bootstrap_options[:key_name]
         get_private_key(bootstrap_options[:key_name])
+      elsif machine_options.has_key?(:ssh_options) && machine_options[:ssh_options].has_key?(:keys)
+        IO.read(machine_options[:ssh_options][:keys].first)
       else
         # TODO make a way to suggest other keys to try ...
         raise "No key found to connect to #{machine_spec.name} (#{machine_spec.reference.inspect})" \
