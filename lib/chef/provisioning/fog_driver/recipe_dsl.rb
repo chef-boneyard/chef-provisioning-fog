@@ -1,6 +1,8 @@
 require 'chef/provisioning/fog_driver/driver'
 require 'chef/resource/fog_key_pair'
 require 'chef/provider/fog_key_pair'
+require 'chef/resource/scaleway_volume'
+require 'chef/provider/scaleway_volume'
 
 class Chef
   module DSL
@@ -25,6 +27,10 @@ class Chef
 
       def with_fog_vcair_driver(driver_options = nil, &block)
         with_fog_driver('Vcair', driver_options, &block)
+      end
+
+      def with_fog_scaleway_driver(driver_options = nil, &block)
+        with_fog_driver('Scaleway', driver_options, &block)
       end
 
     end

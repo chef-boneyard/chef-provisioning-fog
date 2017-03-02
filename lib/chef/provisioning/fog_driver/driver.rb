@@ -277,6 +277,14 @@ module FogDriver
       end
     end
 
+    def create_volume(action_handler, volume_spec, volume_options)
+      raise "##create_volume not implemented in in #{self.class}"
+    end
+
+    def destroy_volume(action_handler, volume_spec, volume_options)
+      raise "##destroy_volume not implemented in in #{self.class}"
+    end
+
     protected
 
     def option_for(machine_options, key)
@@ -308,13 +316,13 @@ module FogDriver
           Chef::Log.warn "Machine #{machine_spec.name} (#{machine_spec.reference['server_id']} on #{driver_url}) no longer exists.  Recreating ..."
         end
 
-      machine_spec.reference ||= {}
-      machine_spec.reference.update(
-        'driver_url' => driver_url,
-        'driver_version' => FogDriver::VERSION,
-        'creator' => creator,
-        'allocated_at' => Time.now.to_i
-      )
+        machine_spec.reference ||= {}
+        machine_spec.reference.update(
+          'driver_url' => driver_url,
+          'driver_version' => FogDriver::VERSION,
+          'creator' => creator,
+          'allocated_at' => Time.now.to_i
+        )
 
         bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
         machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
@@ -368,6 +376,7 @@ module FogDriver
     def create_many_servers(num_servers, bootstrap_options, parallelizer)
       parallelizer.parallelize(1.upto(num_servers)) do |i|
         clean_bootstrap_options = Marshal.load(Marshal.dump(bootstrap_options)) # Prevent destructive operations on bootstrap_options.
+
         server = compute.servers.create(clean_bootstrap_options)
         yield server if block_given?
         server
@@ -483,7 +492,6 @@ module FogDriver
           end
           server.reload
         end
-
       end
     end
 
@@ -614,6 +622,10 @@ module FogDriver
       else
         Machine::UnixMachine.new(machine_spec, transport_for(machine_spec, machine_options, server), convergence_strategy_for(machine_spec, machine_options))
       end
+    end
+
+    def volume_for(volume_spec)
+      raise "Immplement me in #{self.class.name}"
     end
 
     def convergence_strategy_for(machine_spec, machine_options)
