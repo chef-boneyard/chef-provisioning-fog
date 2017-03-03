@@ -1,7 +1,14 @@
 # Change Log
 
-## [v0.21.0](https://github.com/chef/chef-provisioning-fog/tree/v0.21.0)
+## [v0.22.0](https://github.com/chef/chef-provisioning-fog/tree/v0.22.0)
 
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.21.0...v0.22.0)
+
+**Merged pull requests:**
+
+- Vcair changes [\#197](https://github.com/chef/chef-provisioning-fog/pull/197) ([monkey1016](https://github.com/monkey1016))
+
+## [v0.21.0](https://github.com/chef/chef-provisioning-fog/tree/v0.21.0) (2017-03-03)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.20.0...v0.21.0)
 
 **Closed issues:**
@@ -11,6 +18,7 @@
 
 **Merged pull requests:**
 
+- 0.21.0 release [\#206](https://github.com/chef/chef-provisioning-fog/pull/206) ([jjasghar](https://github.com/jjasghar))
 - Bump ruby to 2.3.2 in travis [\#205](https://github.com/chef/chef-provisioning-fog/pull/205) ([elthariel](https://github.com/elthariel))
 - Add initial support for scaleway [\#200](https://github.com/chef/chef-provisioning-fog/pull/200) ([elthariel](https://github.com/elthariel))
 
