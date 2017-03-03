@@ -267,6 +267,8 @@ module FogDriver
 
     # Not meant to be part of public interface
     def transport_for(machine_spec, machine_options, server, action_handler = nil)
+      Chef::Log.debug("Creating transport for #{server}")
+      Chef::Log.debug("Machine Spec: #{machine_spec}")
       if machine_spec.reference['is_windows']
         action_handler.report_progress "Waiting for admin password on #{machine_spec.name} to be ready (may take up to 15 minutes)..." if action_handler
         transport = create_winrm_transport(machine_spec, machine_options, server)
@@ -296,7 +298,7 @@ module FogDriver
     end
 
     def create_servers(action_handler, specs_and_options, parallelizer, &block)
-      specs_and_servers = servers_for(specs_and_options.keys)
+      specs_and_servers = servers_for(specs_and_options)
 
       # Get the list of servers which exist, segmented by their bootstrap options
       # (we will try to create a set of servers for each set of bootstrap options
@@ -324,7 +326,7 @@ module FogDriver
           'allocated_at' => Time.now.to_i
         )
 
-        bootstrap_options = bootstrap_options_for(action_handler, machine_spec, machine_options)
+        bootstrap_options = bootstrap_options_for(machine_spec, machine_options)
         machine_spec.reference['key_name'] = bootstrap_options[:key_name] if bootstrap_options[:key_name]
         by_bootstrap_options[bootstrap_options] ||= []
         by_bootstrap_options[bootstrap_options] << machine_spec
@@ -551,9 +553,9 @@ module FogDriver
       end
     end
 
-    def servers_for(machine_specs)
+    def servers_for(specs_and_options)
       result = {}
-      machine_specs.each do |machine_spec|
+      machine_specs.each do |machine_spec, machine_options|
         if machine_spec.reference
           if machine_spec.reference['driver_url'] != driver_url
             raise "Switching a machine's driver from #{machine_spec.reference['driver_url']} to #{driver_url} for is not currently supported!  Use machine :destroy and then re-create the machine on the new driver."
@@ -590,7 +592,7 @@ module FogDriver
       'chef_default'
     end
 
-    def bootstrap_options_for(action_handler, machine_spec, machine_options)
+    def bootstrap_options_for(machine_spec, machine_options)
       bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
       bootstrap_options[:tags]  = default_tags(machine_spec, bootstrap_options[:tags] || {})
@@ -669,6 +671,8 @@ module FogDriver
         IO.read(bootstrap_options[:key_path])
       elsif bootstrap_options[:key_name]
         get_private_key(bootstrap_options[:key_name])
+      elsif machine_options.has_key?(:ssh_options) && machine_options[:ssh_options].has_key?(:keys)
+        IO.read(machine_options[:ssh_options][:keys].first)
       else
         # TODO make a way to suggest other keys to try ...
         raise "No key found to connect to #{machine_spec.name} (#{machine_spec.reference.inspect})" \

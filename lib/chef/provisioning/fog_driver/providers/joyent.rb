@@ -13,7 +13,7 @@ module FogDriver
         compute_options[:joyent_username]
       end
 
-      def bootstrap_options_for(action_handler, machine_spec, machine_options)
+      def bootstrap_options_for(machine_spec, machine_options)
         bootstrap_options = symbolize_keys(machine_options[:bootstrap_options] || {})
 
         bootstrap_options[:tags] = default_tags(machine_spec, bootstrap_options[:tags] || {})

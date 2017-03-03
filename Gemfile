@@ -8,4 +8,5 @@ group :development do
   gem 'guard-rspec'
   gem 'rb-readline'
   gem 'simplecov'
+  gem 'winrm-elevated'
 end
