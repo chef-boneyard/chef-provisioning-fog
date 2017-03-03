@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'fog-digitalocean'
   s.add_dependency 'fog-scaleway'
   s.add_dependency 'retryable'
+  s.add_dependency 'winrm-elevated'
 
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rake'

@@ -10,3 +10,7 @@ digitalocean.rb
 google.rb
 openstack.rb
 aws.rb
+.direnv/
+.envrc
+.ruby-version
+.rvmrc
