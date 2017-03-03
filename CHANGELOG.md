@@ -1,7 +1,27 @@
 # Change Log
 
-## [v0.19.1](https://github.com/chef/chef-provisioning-fog/tree/v0.19.1) (2016-08-02)
+## [v0.21.0](https://github.com/chef/chef-provisioning-fog/tree/v0.21.0)
 
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.20.0...v0.21.0)
+
+**Closed issues:**
+
+- Openstack Identity v3 support? [\#198](https://github.com/chef/chef-provisioning-fog/issues/198)
+- Problem with converging instances when keypair is missing [\#196](https://github.com/chef/chef-provisioning-fog/issues/196)
+
+**Merged pull requests:**
+
+- Bump ruby to 2.3.2 in travis [\#205](https://github.com/chef/chef-provisioning-fog/pull/205) ([elthariel](https://github.com/elthariel))
+- Add initial support for scaleway [\#200](https://github.com/chef/chef-provisioning-fog/pull/200) ([elthariel](https://github.com/elthariel))
+
+## [v0.20.0](https://github.com/chef/chef-provisioning-fog/tree/v0.20.0) (2016-08-30)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.19.1...v0.20.0)
+
+**Merged pull requests:**
+
+- Release 0.20.0 with Chef Provisioning 2.0 compatbility [\#195](https://github.com/chef/chef-provisioning-fog/pull/195) ([tas50](https://github.com/tas50))
+
+## [v0.19.1](https://github.com/chef/chef-provisioning-fog/tree/v0.19.1) (2016-08-02)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.19.0...v0.19.1)
 
 **Fixed bugs:**
@@ -18,6 +38,7 @@
 
 **Merged pull requests:**
 
+- v0.19.1 [\#193](https://github.com/chef/chef-provisioning-fog/pull/193) ([jjasghar](https://github.com/jjasghar))
 - Load all Openstack.compute\_options\_for from FOG\_RC [\#190](https://github.com/chef/chef-provisioning-fog/pull/190) ([hh](https://github.com/hh))
 
 ## [v0.19.0](https://github.com/chef/chef-provisioning-fog/tree/v0.19.0) (2016-06-02)
