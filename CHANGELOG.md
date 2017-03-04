@@ -1,7 +1,15 @@
 # Change Log
 
-## [v0.22.0](https://github.com/chef/chef-provisioning-fog/tree/v0.22.0)
+## [v0.23.0](https://github.com/chef/chef-provisioning-fog/tree/v0.23.0)
 
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.22.0...v0.23.0)
+
+**Merged pull requests:**
+
+- Loosen the cheffish dependency [\#207](https://github.com/chef/chef-provisioning-fog/pull/207) ([tas50](https://github.com/tas50))
+- Loosen fog-softlayer pin [\#202](https://github.com/chef/chef-provisioning-fog/pull/202) ([tas50](https://github.com/tas50))
+
+## [v0.22.0](https://github.com/chef/chef-provisioning-fog/tree/v0.22.0) (2017-03-03)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.21.0...v0.22.0)
 
 **Merged pull requests:**
