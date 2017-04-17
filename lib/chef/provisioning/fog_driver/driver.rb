@@ -731,7 +731,14 @@ module FogDriver
     def determine_remote_host(machine_spec, server)
       transport_address_location = (machine_spec.reference['transport_address_location'] || :none).to_sym
 
-      if machine_spec.reference['use_private_ip_for_ssh']
+      if machine_options.has_key?(:bootstrap_network)
+        bootstrap_network = machine_options[:bootstrap_network]
+        begin
+          remote_host = server.addresses[bootstrap_network].first["addr"]
+        rescue
+          raise "Could not find address for bootstrap_network '#{bootstrap_network}'"
+        end
+      elsif machine_spec.reference['use_private_ip_for_ssh']
         # The machine_spec has the old config key, lets update it - a successful chef converge will save the machine_spec
         # TODO in 2.0 get rid of this update
         machine_spec.reference.delete('use_private_ip_for_ssh')
