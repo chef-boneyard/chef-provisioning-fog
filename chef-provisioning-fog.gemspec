@@ -22,10 +22,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'retryable'
   s.add_dependency 'winrm-elevated'
 
-  s.add_development_dependency 'rspec'
-  s.add_development_dependency 'rake'
-  s.add_development_dependency 'github_changelog_generator'
-
   s.bindir       = "bin"
   s.executables  = %w( )
 
