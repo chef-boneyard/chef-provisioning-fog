@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="RUBY_MODULE" version="4">
+  <component name="ModuleRunConfigurationManager">
+    <shared />
+    <local />
+  </component>
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="PROVIDED" name="bundler (v1.12.5, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="chef (v12.13.37, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="chef-provisioning (v1.9.1, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="fog (v1.38.0, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="fog-softlayer (v1.1.3, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="google-api-client (v0.8.6, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="guard (v2.14.0, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rake (v11.2.2, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rb-readline (v0.5.3, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="retryable (v2.0.4, ruby-2.1.8-p440) [gem]" level="application" />
+    <orderEntry type="library" scope="PROVIDED" name="rspec (v3.5.0, ruby-2.1.8-p440) [gem]" level="application" />
+  </component>
+</module>
