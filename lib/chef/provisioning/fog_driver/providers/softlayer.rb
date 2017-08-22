@@ -63,8 +63,10 @@ class Chef
             # options are passed directly to SoftLayer API and
             # SoftLayer_Hardware_Server rejects requests with unrecognized
             # options
+            opts.delete(:vlan) if opts[:vlan] && opts[:private_network_only]
+
             opts.keep_if do |opt, val|
-              ::Fog::Compute::Softlayer::Server.attributes.include?(opt)
+              ::Fog::Compute::Softlayer::Server.attributes.include?(opt) || opt =~ /private_vlan|vlan/
             end
             # fog-softlayer defines :tags but SoftLayer_Hardware_Server rejects it...
             #opts.delete :tags
