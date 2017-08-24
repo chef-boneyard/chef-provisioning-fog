@@ -1,7 +1,14 @@
 # Change Log
 
-## [0.24.1](https://github.com/chef/chef-provisioning-fog/tree/0.24.1) (2017-08-21)
-[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.24.0...0.24.1)
+## [0.25.0](https://github.com/chef/chef-provisioning-fog/tree/0.25.0) (2017-08-24)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.24.1...0.25.0)
+
+**Merged pull requests:**
+
+- Machine allocation to a specific :private\_vlan and :vlan. [\#218](https://github.com/chef/chef-provisioning-fog/pull/218) ([deniskin82](https://github.com/deniskin82))
+
+## [v0.24.1](https://github.com/chef/chef-provisioning-fog/tree/v0.24.1) (2017-08-21)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.24.0...v0.24.1)
 
 **Closed issues:**
 
