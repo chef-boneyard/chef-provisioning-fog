@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.homepage = 'https://github.com/chef/chef-provisioning-fog'
 
   s.add_dependency 'chef-provisioning', '>= 1.0', '< 3.0'
-  s.add_dependency 'cheffish', '>= 5.0', '< 13.0'
+  s.add_dependency 'cheffish', '>= 5.0', '< 14.0'
   s.add_dependency 'fog'
   s.add_dependency 'google-api-client'
   s.add_dependency 'fog-softlayer'
