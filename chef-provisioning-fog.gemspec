@@ -13,10 +13,10 @@ Gem::Specification.new do |s|
   s.homepage = 'https://github.com/chef/chef-provisioning-fog'
 
   s.add_dependency 'chef-provisioning', '>= 1.0', '< 3.0'
-  s.add_dependency 'cheffish', '>= 4.0', '< 6.0'
-  s.add_dependency 'fog', '>= 1.37.0'
-  s.add_dependency 'google-api-client', "~> 0.8.0"
-  s.add_dependency 'fog-softlayer' , '~> 1.1'
+  s.add_dependency 'cheffish', '>= 5.0', '< 13.0'
+  s.add_dependency 'fog'
+  s.add_dependency 'google-api-client'
+  s.add_dependency 'fog-softlayer'
   s.add_dependency 'fog-digitalocean'
   s.add_dependency 'fog-scaleway'
   s.add_dependency 'retryable'
@@ -24,7 +24,6 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'github_changelog_generator'
 
   s.bindir       = "bin"
   s.executables  = %w( )
