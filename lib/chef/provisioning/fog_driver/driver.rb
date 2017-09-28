@@ -176,7 +176,7 @@ module FogDriver
     end
 
     def compute_options
-      driver_options[:compute_options].to_hash || {}
+      JSON.parse(driver_options[:compute_options].to_h.to_json, symbolize_names: true) || {}
     end
 
     def provider
