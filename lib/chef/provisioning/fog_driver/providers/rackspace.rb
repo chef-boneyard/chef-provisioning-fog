@@ -29,7 +29,6 @@ module FogDriver
         }
         result = Cheffish::MergedConfig.new(new_config, config, new_defaults)
 
-
         new_compute_options[:rackspace_auth_url] = id if (id && id != '')
         credential = Fog.credentials
 
