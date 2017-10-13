@@ -14,9 +14,9 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'chef-provisioning', '>= 1.0', '< 3.0'
   s.add_dependency 'cheffish', '>= 5.0', '< 14.0'
-  s.add_dependency 'fog'
-  s.add_dependency 'google-api-client'
-  s.add_dependency 'fog-softlayer'
+  s.add_dependency 'fog', '>= 1.37.0'
+  s.add_dependency 'google-api-client', "~> 0.8.0"
+  s.add_dependency 'fog-softlayer' , '~> 1.1'
   s.add_dependency 'fog-digitalocean'
   s.add_dependency 'fog-scaleway'
   s.add_dependency 'retryable'
