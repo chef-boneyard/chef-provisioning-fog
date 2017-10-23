@@ -4,8 +4,8 @@ branches:
   only:
     - master
 rvm:
-  - 2.2.5
-  - 2.3.2
+  - 2.3.5
+  - 2.4.2
 script: bundle exec rake spec
 notifications:
   slack:

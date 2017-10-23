@@ -13,12 +13,21 @@ Gem::Specification.new do |s|
   s.homepage = 'https://github.com/chef/chef-provisioning-fog'
 
   s.add_dependency 'chef-provisioning', '>= 1.0', '< 3.0'
-  s.add_dependency 'cheffish', '>= 5.0', '< 14.0'
-  s.add_dependency 'fog'
-  s.add_dependency 'google-api-client'
-  s.add_dependency 'fog-softlayer'
+  s.add_dependency 'cheffish', '>= 13.1.0', '< 14.0'
+  #
+  # NOTE: the `fog` direct dependency has been removed from chef-provisioning-fog, if there is no meta-gem
+  # then users _must_ install the fog dependency manually (`chef gem install fog` for chefdk).  this affects
+  # at least cloudstack and vcair users.  aws users should use chef-provisioning-aws.
+  #
+  # s.add_dependency 'fog-aws'     # Deliberately removed: chef-provisioning-aws is preferred
   s.add_dependency 'fog-digitalocean'
+  # s.add_dependency 'fog-google'  # Deliberately removed: fog-google is broken with newer google-api-client
+  s.add_dependency 'fog-joyent'
+  s.add_dependency 'fog-openstack'
+  s.add_dependency 'fog-rackspace'
   s.add_dependency 'fog-scaleway'
+  s.add_dependency 'fog-softlayer'
+  s.add_dependency 'fog-xenserver'
   s.add_dependency 'retryable'
   s.add_dependency 'winrm-elevated'
 
