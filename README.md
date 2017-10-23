@@ -23,6 +23,10 @@ These are the primary documents to help learn about using Provisioning and creat
 
 ### Amazon EC2
 
+NOTE: Using chef-provisioning-fog for AWS is discouraged and new users should use `chef-provisioning-aws`.  To use chef-provisioning-fog the `fog-aws` gem must be installed
+by hand (it is not list a dependency of this gem any more).  ChefDK users should `chef gem install fog-aws`.
+
+
 You'll need to update your `knife.rb` to work:
 
 You need one of the following for the driver:
@@ -79,6 +83,10 @@ $
 For a full example see [examples/digitalocean/simple.rb](examples/digitalocean/simple.rb).
 
 ### Google Compute Engine
+
+NOTE: currently `fog-google` is broken against the current `google-api-client` client.  The dependency on fog-google has
+been removed until this is fixed upstream.  Users will likely need to use a Gemfile and pin manually to a working version
+of fog, fog-google and google-api-client.  It is unlikely that it will work successfully with ChefDK with no Gemfile
 
 You'll need to update your `knife.rb` to work:
 
@@ -191,6 +199,10 @@ driver_options :compute_options => {
 For a full example see [examples/rackspace/simple.rb](examples/rackspace/simple.rb).
 
 ### vCloud Air
+
+NOTE:  The `fog` mega-gem has been removed as a direct dependency of `chef-provisioning-fog`.  Since support
+for vcair is only in the `fog` gem and fog does not supply any "meta-gem" for vcair specifically, that means
+that the `fog` gem must be manually installed.  ChefDK users should manually `chef gem install fog`.
 
 Docs TODO.
 
