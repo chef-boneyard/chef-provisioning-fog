@@ -19,9 +19,9 @@ Gem::Specification.new do |s|
   # then users _must_ install the fog dependency manually (`chef gem install fog` for chefdk).  this affects
   # at least cloudstack and vcair users.  aws users should use chef-provisioning-aws.
   #
-  # s.add_dependency 'fog-aws'     # chef-provisioning-aws is preferred
+  # s.add_dependency 'fog-aws'     # Deliberately removed: chef-provisioning-aws is preferred
   s.add_dependency 'fog-digitalocean'
-  # s.add_dependency 'fog-google'  # fog-google is broken with newer google-api-client
+  # s.add_dependency 'fog-google'  # Deliberately removed: fog-google is broken with newer google-api-client
   s.add_dependency 'fog-joyent'
   s.add_dependency 'fog-openstack'
   s.add_dependency 'fog-rackspace'
