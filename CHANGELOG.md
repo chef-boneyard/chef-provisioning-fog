@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.26.0](https://github.com/chef/chef-provisioning-fog/tree/0.26.0) (2017-10-23)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.25.1...0.26.0)
+
+- This gem no longer depends on the fog megagem `fog` and instead cherry picks the following fog gems: digitalocean, openstack, joyent, rackspace, scaleway, softlayer, and xenserver. If you require further support you'll need to manually install the fog gem.
+- Discourage the use of this gem for managing AWS resources in the readme. Use the provsioning aws gem instead.
+- Add a note that Google support is currently broken pending the fog-google team's update to the new google api gem release
+- Updated the cheffish requirement to '>= 13.1.0', '< 14.0'
+
+## [0.25.1](https://github.com/chef/chef-provisioning-fog/tree/0.25.1) (2017-10-13)
+[Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.25.0...0.25.1)
+
+- Remove version constraints on fog, google-api-client, and fog-softlayer gems
+- Change the cheffish dependency from '>= 4.0', '< 6.0' to '>= 5.0', '< 14.0'
+- Update JSON parsing for the new gem version
+
 ## [0.25.0](https://github.com/chef/chef-provisioning-fog/tree/0.25.0) (2017-08-24)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.24.1...0.25.0)
 
