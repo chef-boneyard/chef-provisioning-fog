@@ -555,7 +555,7 @@ module FogDriver
 
     def servers_for(specs_and_options)
       result = {}
-      machine_specs.each do |machine_spec, machine_options|
+      specs_and_options.each do |machine_spec, _machine_options|
         if machine_spec.reference
           if machine_spec.reference['driver_url'] != driver_url
             raise "Switching a machine's driver from #{machine_spec.reference['driver_url']} to #{driver_url} for is not currently supported!  Use machine :destroy and then re-create the machine on the new driver."
