@@ -4,17 +4,7 @@ branches:
   only:
     - master
 rvm:
-  - 2.3.5
-  - 2.4.2
+  - 2.3.7
+  - 2.4.4
+  - 2.5.1
 script: bundle exec rake spec
-notifications:
-  slack:
-    secure: BDbAMaWpj40Ayjii1xo2XHfhKcXRUITbW/p+esFc4Iut7BkH956eG0KWGjhgiqernRni5jAuaNLpHyF8KNDOVDApb2mEfgsANGOxAc7Ic8KqQKqkdAg4EqbWtKIZCtJa1fC/tleoaiGBNS2l6ktEmi+dlXINDzLXKTQlG1IFcLs=
-deploy:
-  provider: rubygems
-  api_key:
-    secure: C3G7q3ZrJGsMhh+qPRK3YqsAzIjc6GkBwdZ7tEKZnSPZXLhGpHsQ7gx0kdtRffssoqM8JCTCed2voZz2L0agpc+isbu9Pj2MvLYtFl3MFEhEBOkKiKxcEbVx5gUFERjjIhIcWIeZ9qAVz9AYcjkvBo1qdQawH+DTR+oQzPFsZ+4=
-  gem: chef-provisioning-fog
-  on:
-    tags: true
-    repo: chef/chef-provisioning-fog
