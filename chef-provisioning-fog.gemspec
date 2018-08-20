@@ -4,13 +4,14 @@ require 'chef/provisioning/fog_driver/version'
 Gem::Specification.new do |s|
   s.name = 'chef-provisioning-fog'
   s.version = Chef::Provisioning::FogDriver::VERSION
-  s.platform = Gem::Platform::RUBY
   s.extra_rdoc_files = ['README.md', 'LICENSE' ]
   s.summary = 'Driver for creating Fog instances in Chef Provisioning.'
   s.description = s.summary
   s.authors     = ['John Keiser', "Chris McClimans", "Taylor Carpenter", "Wavell Watson", "JJ Asghar"]
   s.email = ['john@johnkeiser.com', 'hh@vulk.co', 't@vulk.co', 'w@vulk.co','jj@chef.io']
   s.homepage = 'https://github.com/chef/chef-provisioning-fog'
+  s.license = "Apache-2.0"
+  s.required_ruby_version = ">= 2.1.9"
 
   s.add_dependency 'chef-provisioning', '>= 1.0', '< 3.0'
   s.add_dependency 'cheffish', '>= 13.1.0', '< 15.0'
