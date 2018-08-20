@@ -1,10 +1,16 @@
 # chef-provisioning-fog Change Log
 
+<!-- latest_release -->
+<!-- latest_release -->
+<!-- release_rollup -->
+<!-- release_rollup -->
+<!-- latest_stable_release -->
 ## [0.26.1](https://github.com/chef/chef-provisioning-fog/tree/0.26.1) (2018-04-24)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.26.0...0.26.1)
 
 - Relax the Cheffish dependency to allow 14.X
 - Fix variable names
+<!-- latest_stable_release -->
 
 ## [0.26.0](https://github.com/chef/chef-provisioning-fog/tree/0.26.0) (2017-10-23)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.25.1...0.26.0)
