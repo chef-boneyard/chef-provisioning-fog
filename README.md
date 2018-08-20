@@ -280,10 +280,12 @@ Modify these timeouts if you need Chef to wait a bit of time to allow for the ma
 
 ```ruby
 with_machine_options({
-  # set longer to wait for the instance to boot to ssh (defaults to 180)
-  :create_timeout => 360,
-  # set longer to wait for the instance to start (defaults to 180)
-  :start_timeout => 360,
+  :bootstrap_options => {
+    # set longer to wait for the instance to boot to ssh (defaults to 180)
+    :create_timeout => 360,
+    # set longer to wait for the instance to start (defaults to 180)
+    :start_timeout => 360,
+  }
   # set longer to wait for ssh to be available if the instance is detected up (defaults to 20)
   :ssh_timeout => 360
 })
