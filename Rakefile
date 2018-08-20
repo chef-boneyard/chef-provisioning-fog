@@ -1,20 +1,23 @@
 require "bundler/gem_tasks"
 require "rspec/core/rake_task"
 
-task default: :spec
 desc "run specs"
 task :spec do
   sh "bundle exec rspec"
 end
 
 begin
-  require "github_changelog_generator/task"
-
-  GitHubChangelogGenerator::RakeTask.new :changelog do |config|
-    config.future_release = Chef::Provisioning::FogDriver::VERSION
-    config.enhancement_labels = "enhancement,Enhancement,New Feature".split(",")
-    config.bug_labels = "bug,Bug,Improvement,Upstream Bug".split(",")
-    config.exclude_labels = "duplicate,question,invalid,wontfix,no_changelog,Exclude From Changelog,Question".split(",")
-  end
+  require "yard"
+  YARD::Rake::YardocTask.new(:docs)
 rescue LoadError
+  puts "yard is not available. bundle install first to make sure all dependencies are installed."
 end
+
+task :console do
+  require "irb"
+  require "irb/completion"
+  ARGV.clear
+  IRB.start
+end
+
+task :default => :spec

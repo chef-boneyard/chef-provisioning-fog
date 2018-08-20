@@ -4,24 +4,30 @@ gemspec
 
 group :development do
   # fog-google and fog-aws have been removed as direct deps, but are necessary for testing
-  gem "fog-google"
   gem "fog-aws"
+  gem "fog-google"
+  gem "chef"
   # fog is necessary for fog-cloudstack
   gem "fog"
-  gem "chef"
-  gem 'guard'
-  gem 'guard-rspec'
-  gem 'rb-readline'
-  gem 'simplecov'
-  gem 'winrm-elevated'
+  gem "guard"
+  gem "guard-rspec"
+  gem "rake"
   gem "rspec", "~> 3.0"
-  gem 'rake'
+  gem "simplecov"
+  gem "winrm-elevated"
 end
 
 group :debug do
   gem "pry"
   gem "pry-byebug"
   gem "pry-stack_explorer"
+  gem "rb-readline"
+end
+
+group :docs do
+  gem "github-markup"
+  gem "redcarpet"
+  gem "yard"
 end
 
 instance_eval(ENV["GEMFILE_MOD"]) if ENV["GEMFILE_MOD"]
