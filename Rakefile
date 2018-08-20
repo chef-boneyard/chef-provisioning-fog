@@ -17,4 +17,14 @@ task :console do
   IRB.start
 end
 
-task :default => :spec
+begin
+  require "chefstyle"
+  require "rubocop/rake_task"
+  RuboCop::RakeTask.new(:chefstyle) do |task|
+    task.options << "--display-cop-names"
+  end
+rescue LoadError
+  puts "chefstyle gem is not installed"
+end
+
+task default: :spec

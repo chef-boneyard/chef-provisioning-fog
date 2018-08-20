@@ -11,7 +11,7 @@ with_driver "fog:Scaleway:my-org-uuid:region"
 add_machine_options bootstrap_options: {
   # Images UUID can be obtained with the 'scw' tool.
   # Ex: `scw images`, `scw inspect Debian_Sid` and `scw inspect 100a9904`
-  image: '599b736c-48b5-4530-9764-f04d06ecadc7', # Debian Sid / arm
+  image: "599b736c-48b5-4530-9764-f04d06ecadc7", # Debian Sid / arm
   commercial_type: "C1", # VC1S, ...
 
   # The private key to use to connect and setup shef
@@ -22,8 +22,8 @@ add_machine_options bootstrap_options: {
 }
 
 machine "myserver" do
-  recipe 'apt'
+  recipe "apt"
   add_machine_options bootstrap_options: {
-    tags: ['forever_up'],
+    tags: ["forever_up"]
   }
 end

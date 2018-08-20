@@ -1,7 +1,7 @@
-require 'chef/provisioning'
+require "chef/provisioning"
 
 class Chef::Resource::ScalewayVolume < Chef::Resource::LWRPBase
-  self.resource_name = 'scaleway_volume'
+  self.resource_name = "scaleway_volume"
 
   def initialize(*args)
     super
@@ -18,15 +18,15 @@ class Chef::Resource::ScalewayVolume < Chef::Resource::LWRPBase
   attribute :volume_options
 
   def add_volume_options(options)
-    if @volume_options
-      @volume_options = Cheffish::MergedConfig.new(options, @volume_options)
-    else
-      @volume_options = options
-    end
+    @volume_options = if @volume_options
+                        Cheffish::MergedConfig.new(options, @volume_options)
+                      else
+                        options
+                      end
   end
 
   # We are not interested in Chef's cloning behavior here.
-  def load_prior_resource(*args)
+  def load_prior_resource(*_args)
     Chef::Log.debug("Overloading #{resource_name}.load_prior_resource with NOOP")
   end
 end

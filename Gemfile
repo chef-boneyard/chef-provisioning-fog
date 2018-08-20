@@ -3,10 +3,11 @@ source "https://rubygems.org"
 gemspec
 
 group :development do
+  gem "chef"
+  gem "chefstyle", "~> 0.10.0"
   # fog-google and fog-aws have been removed as direct deps, but are necessary for testing
   gem "fog-aws"
   gem "fog-google"
-  gem "chef"
   # fog is necessary for fog-cloudstack
   gem "fog"
   gem "guard"

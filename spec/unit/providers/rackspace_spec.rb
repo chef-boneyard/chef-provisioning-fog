@@ -1,12 +1,12 @@
-require 'spec_helper'
-require 'chef/provisioning/fog_driver/providers/rackspace'
+require "spec_helper"
+require "chef/provisioning/fog_driver/providers/rackspace"
 
 describe Chef::Provisioning::FogDriver::Providers::Rackspace do
   subject do
     Chef::Provisioning::FogDriver::Driver.from_provider(
-      'Rackspace', driver_options: { compute_options: { 
-                   rackspace_username: 'test_username', rackspace_api_key: 'test_api_key'} 
-                 }
+      "Rackspace", driver_options: { compute_options: {
+        rackspace_username: "test_username", rackspace_api_key: "test_api_key"
+      } }
     )
   end
 
@@ -18,5 +18,4 @@ describe Chef::Provisioning::FogDriver::Providers::Rackspace do
     pending unless Fog.mock?
     expect(subject.compute).to be_an_instance_of Fog::Compute::RackspaceV2::Mock
   end
-
 end
