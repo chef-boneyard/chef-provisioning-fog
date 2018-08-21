@@ -1,13 +1,14 @@
-require 'spec_helper'
-require 'chef/provisioning/fog_driver/providers/softlayer'
+require "spec_helper"
+require "chef/provisioning/fog_driver/providers/softlayer"
 
 describe Chef::Provisioning::FogDriver::Providers::SoftLayer do
   subject do
     Chef::Provisioning::FogDriver::Driver.from_provider(
-      'SoftLayer',
-        driver_options: {
-          compute_options: {
-              softlayer_username: 'test_username', softlayer_api_key: 'test_api_key'}
+      "SoftLayer",
+      driver_options: {
+        compute_options: {
+          softlayer_username: "test_username", softlayer_api_key: "test_api_key"
+        }
       }
     )
   end
@@ -21,4 +22,3 @@ describe Chef::Provisioning::FogDriver::Providers::SoftLayer do
     expect(subject.compute).to be_an_instance_of Fog::Compute::Softlayer::Mock
   end
 end
-

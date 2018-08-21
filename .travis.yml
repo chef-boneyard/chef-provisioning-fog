@@ -17,4 +17,6 @@ branches:
 
 bundler_args: --jobs 7 --without docs debug
 
-script: bundle exec rake spec
+script:
+  - bundle exec rake chefstyle
+  - bundle exec rake spec

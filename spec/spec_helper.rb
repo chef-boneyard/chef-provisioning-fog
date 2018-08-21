@@ -1,9 +1,9 @@
-$:.unshift File.expand_path('../../lib', __FILE__)
-$:.unshift File.expand_path('../support', __FILE__)
-require 'fog'
-require 'chef/provisioning'
-require 'chef/provisioning/fog_driver/driver'
-require 'simplecov'
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift File.expand_path("support", __dir__)
+require "fog"
+require "chef/provisioning"
+require "chef/provisioning/fog_driver/driver"
+require "simplecov"
 
 SimpleCov.start do
   # add_filter do |source_file|
@@ -20,7 +20,7 @@ RSpec.configure do |config|
   # order dependency and want to debug it, you can fix the order by providing
   # the seed, which is printed after each run.
   #     --seed 1234
-  config.order = 'random'
+  config.order = "random"
 end
 
 Fog.mock!

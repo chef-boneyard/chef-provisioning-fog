@@ -1,0 +1,54 @@
+Layout/ConditionPosition:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/driver.rb'
+
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyleAlignWith, AutoCorrect, Severity.
+# SupportedStylesAlignWith: keyword, variable, start_of_line
+Layout/EndAlignment:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/driver.rb'
+    - 'lib/chef/provisioning/fog_driver/providers/vcair.rb'
+
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - 'examples/vcair/vcloud_director_simple.rb'
+
+Lint/IneffectiveAccessModifier:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/driver.rb'
+    - 'lib/chef/provisioning/fog_driver/providers/aws.rb'
+
+Lint/ShadowingOuterLocalVariable:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/providers/scaleway.rb'
+
+Lint/UselessAssignment:
+  Exclude:
+    - 'lib/chef/provider/fog_key_pair.rb'
+    - 'lib/chef/provisioning/fog_driver/driver.rb'
+    - 'lib/chef/provisioning/fog_driver/providers/aws.rb'
+    - 'lib/chef/provisioning/fog_driver/providers/vcair.rb'
+
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: snake_case, camelCase
+Naming/VariableName:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/providers/softlayer.rb'
+
+# Cop supports --auto-correct.
+Performance/RedundantMatch:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/providers/vcair.rb'
+
+Security/Eval:
+  Exclude:
+    - 'lib/chef/provisioning/fog_driver/providers/xenserver.rb'
+
+# Cop supports --auto-correct.
+# Configuration parameters: AutoCorrect, EnforcedStyle.
+# SupportedStyles: predicate, comparison
+Style/NumericPredicate:
+  Exclude:
+    - 'spec/**/*'
+    - 'lib/chef/provisioning/fog_driver/providers/digitalocean.rb'

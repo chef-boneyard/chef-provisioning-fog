@@ -1,11 +1,10 @@
-#fog:XenServer:<XenServer IP>
+# fog:XenServer:<XenServer IP>
 class Chef
   module Provisioning
     module FogDriver
       module Providers
         class XenServer < FogDriver::Driver
-
-          Driver.register_provider_class('XenServer', FogDriver::Providers::XenServer)
+          Driver.register_provider_class("XenServer", FogDriver::Providers::XenServer)
 
           def creator
             compute_options[:xenserver_username]
@@ -13,15 +12,14 @@ class Chef
 
           def bootstrap_options_for(machine_spec, machine_options)
             bootstrap_options = super
-            bootstrap_options[:tags] = bootstrap_options[:tags].map {|k,v| "#{k}: #{v}" }
+            bootstrap_options[:tags] = bootstrap_options[:tags].map { |k, v| "#{k}: #{v}" }
             bootstrap_options
           end
 
-          def ssh_options_for(machine_spec, machine_options, server)
-            { auth_methods: [ 'password' ],
+          def ssh_options_for(_machine_spec, machine_options, _server)
+            { auth_methods: ["password"],
               timeout: (machine_options[:ssh_timeout] || 600),
-              password: machine_options[:ssh_password]
-            }.merge(machine_options[:ssh_options] || {})
+              password: machine_options[:ssh_password] }.merge(machine_options[:ssh_options] || {})
           end
 
           def self.compute_options_for(provider, id, config)
@@ -29,12 +27,12 @@ class Chef
             new_compute_options[:provider] = provider
             new_config = { driver_options: { compute_options: new_compute_options } }
             new_defaults = {
-                driver_options: { compute_options: {} },
-                machine_options: { bootstrap_options: { affinity: id } }
+              driver_options: { compute_options: {} },
+              machine_options: { bootstrap_options: { affinity: id } }
             }
             result = Cheffish::MergedConfig.new(new_config, config, new_defaults)
 
-            new_compute_options[:xenserver_url] = id if id && id != ''
+            new_compute_options[:xenserver_url] = id if id && id != ""
             credential = Fog.credentials
 
             new_compute_options[:xenserver_username] ||= credential[:xenserver_username]
@@ -50,9 +48,7 @@ class Chef
 
           def server_for(machine_spec)
             if machine_spec.reference
-              compute.servers.get(compute.get_by_uuid(machine_spec.reference['server_id'], 'VM'))
-            else
-              nil
+              compute.servers.get(compute.get_by_uuid(machine_spec.reference["server_id"], "VM"))
             end
           end
 
@@ -60,10 +56,10 @@ class Chef
             result = {}
             specs_and_options.each do |machine_spec, _machine_options|
               if machine_spec.reference
-                if machine_spec.reference['driver_url'] != driver_url
+                if machine_spec.reference["driver_url"] != driver_url
                   raise "Switching a machine's driver from #{machine_spec.reference['driver_url']} to #{driver_url} for is not currently supported!  Use machine :destroy and then re-create the machine on the new driver."
                 end
-                result[machine_spec] = compute.servers.get(compute.get_by_uuid(machine_spec.reference['server_id'], 'VM'))
+                result[machine_spec] = compute.servers.get(compute.get_by_uuid(machine_spec.reference["server_id"], "VM"))
               else
                 result[machine_spec] = nil
               end
@@ -72,29 +68,28 @@ class Chef
           end
 
           def create_many_servers(num_servers, bootstrap_options, parallelizer)
-            parallelizer.parallelize(1.upto(num_servers)) do |i|
+            parallelizer.parallelize(1.upto(num_servers)) do |_i|
               compute.default_template = bootstrap_options[:template] if bootstrap_options[:template]
-              raise 'No server can be created without a template, please set a template name as bootstrap_options' unless compute.default_template
+              raise "No server can be created without a template, please set a template name as bootstrap_options" unless compute.default_template
               server = compute.default_template.clone bootstrap_options[:name]
 
               if bootstrap_options[:affinity]
                 host = compute.hosts.all.select { |h| h.address == bootstrap_options[:affinity] }.first
-                if !host
+                unless host
                   raise "Host with ID #{bootstrap_options[:affinity]} not found."
                 end
                 server.affinity = host.reference
               end
 
-
               unless bootstrap_options[:memory].nil?
                 mem = (bootstrap_options[:memory].to_i * 1024 * 1024).to_s
-                server.set_attribute 'memory_limits', mem, mem, mem, mem
+                server.set_attribute "memory_limits", mem, mem, mem, mem
               end
 
               unless bootstrap_options[:cpus].nil?
                 cpus = (bootstrap_options[:cpus]).to_s
-                server.set_attribute 'VCPUs_max', cpus
-                server.set_attribute 'VCPUs_at_startup', cpus
+                server.set_attribute "VCPUs_max", cpus
+                server.set_attribute "VCPUs_at_startup", cpus
               end
 
               # network configuration through xenstore
@@ -103,33 +98,30 @@ class Chef
                 network = bootstrap_options[:network]
                 net_names = network[:vifs]
                 if net_names
-                  server.vifs.each {|x| x.destroy }
+                  server.vifs.each(&:destroy)
                   compute.networks.select { |net| Array(net_names).include? net.name }.each do |net|
                     compute.vifs.create vm: server, network: net, device: "0"
                   end
                 end
-                attrs['vm-data/ip'] = network[:vm_ip] if network[:vm_ip]
-                attrs['vm-data/gw'] = network[:vm_gateway] if network[:vm_gateway]
-                attrs['vm-data/nm'] = network[:vm_netmask] if network[:vm_netmask]
-                attrs['vm-data/ns'] = network[:vm_dns] if network[:vm_dns]
-                attrs['vm-data/dm'] = network[:vm_domain] if network[:vm_domain]
-                if !attrs.empty?
-                  server.set_attribute 'xenstore_data', attrs
-                end
+                attrs["vm-data/ip"] = network[:vm_ip] if network[:vm_ip]
+                attrs["vm-data/gw"] = network[:vm_gateway] if network[:vm_gateway]
+                attrs["vm-data/nm"] = network[:vm_netmask] if network[:vm_netmask]
+                attrs["vm-data/ns"] = network[:vm_dns] if network[:vm_dns]
+                attrs["vm-data/dm"] = network[:vm_domain] if network[:vm_domain]
+                server.set_attribute "xenstore_data", attrs unless attrs.empty?
               end
 
               userdevice = 1
-              (bootstrap_options[:additional_disks] || Hash.new).each do |name, data|
+              (bootstrap_options[:additional_disks] || {}).each do |name, data|
                 sr_name = data[:sr]
                 storage_repository = compute.storage_repositories.find { |sr| sr.name == sr_name }
-                raise 'You must specify sr name to add additional disks' unless storage_repository
-                raise 'You must specify size to add additional disk' unless data[:size]
+                raise "You must specify sr name to add additional disks" unless storage_repository
+                raise "You must specify size to add additional disk" unless data[:size]
 
                 gb   = 1_073_741_824
                 size = data[:size].to_i * gb
 
-
-                vdi_params = { name: name}
+                vdi_params = { name: name }
                 vdi_params[:storage_repository] = storage_repository
                 vdi_params[:description] == data[:description] if data[:description]
                 vdi_params[:virtual_size] = size.to_s
@@ -137,7 +129,6 @@ class Chef
 
                 compute.vbds.create vm: server, vdi: vdi, userdevice: userdevice.to_s, bootable: false
                 userdevice += 1
-
               end
 
               server.provision
@@ -147,10 +138,10 @@ class Chef
           end
 
           def start_server(action_handler, machine_spec, server)
-            if server.state == 'Halted'
+            if server.state == "Halted"
               action_handler.perform_action "start machine #{machine_spec.name} (#{server.id} on #{driver_url})" do
                 server.start
-                machine_spec.reference['started_at'] = Time.now.to_i
+                machine_spec.reference["started_at"] = Time.now.to_i
               end
               machine_spec.save(action_handler)
             end
@@ -165,9 +156,8 @@ class Chef
   end
 end
 
-
 # Add methods required by the fog driver to XenServer's Server class
-require 'fog/compute/models/server'
+require "fog/compute/models/server"
 module Fog
   module Compute
     class XenServer
@@ -182,15 +172,15 @@ module Fog
           end
 
           def public_ip_address
-            if xenstore_data['vm-data/ip']
-              xenstore_data['vm-data/ip']
+            if xenstore_data["vm-data/ip"]
+              xenstore_data["vm-data/ip"]
             else
               wait_for { tools_installed? }
               if tools_installed?
                 guest_metrics.networks.first[1]
               else
-                fail 'Unable to return IP address. Virtual machine does not ' \
-                'have XenTools installed or a timeout occurred.'
+                raise "Unable to return IP address. Virtual machine does not " \
+                "have XenTools installed or a timeout occurred."
               end
             end
           end
@@ -213,36 +203,33 @@ end
 module Fog
   module XenServer
     class Connection
-      require 'xmlrpc/client'
+      require "xmlrpc/client"
       attr_reader :credentials
 
       def request(options, *params)
-        begin
-          parser = options.delete(:parser)
-          method = options.delete(:method)
+        parser = options.delete(:parser)
+        method = options.delete(:method)
 
-          if params.empty?
-            response = @factory.call_async(method, @credentials)
+        if params.empty?
+          response = @factory.call_async(method, @credentials)
+        else
+          if params.length.eql?(1) && params.first.is_a?(Hash)
+            response = @factory.call_async(method, @credentials, params.first)
+          elsif params.length.eql?(2) && params.last.is_a?(Array)
+            response = @factory.call_async(method, @credentials, params.first, params.last)
           else
-            if params.length.eql?(1) and params.first.is_a?(Hash)
-              response = @factory.call_async(method, @credentials, params.first)
-            elsif params.length.eql?(2) and params.last.is_a?(Array)
-              response = @factory.call_async(method, @credentials, params.first, params.last)
-            else
-              response = eval("@factory.call_async('#{method}', '#{@credentials}', #{params.map { |p| p.is_a?(String) ? "'#{p}'" : p }.join(',')})")
-            end
+            response = eval("@factory.call_async('#{method}', '#{@credentials}', #{params.map { |p| p.is_a?(String) ? "'#{p}'" : p }.join(',')})")
           end
-          raise RequestFailed.new("#{method}: " + response["ErrorDescription"].to_s) unless response["Status"].eql? "Success"
-          if parser
-            parser.parse(response["Value"])
-            response = parser.response
-          end
-
-          response
         end
+        raise RequestFailed, "#{method}: " + response["ErrorDescription"].to_s unless response["Status"].eql? "Success"
+        if parser
+          parser.parse(response["Value"])
+          response = parser.response
+        end
+
+        response
       end
     end
-
   end
 end
 
@@ -250,7 +237,7 @@ module Fog
   class Logger
     def self.deprecation(message)
       # Silence...ahh
-      Chef::Log.debug('Fog: ' + message)
+      Chef::Log.debug("Fog: " + message)
     end
   end
 end

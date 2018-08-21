@@ -1,9 +1,7 @@
-# coding: utf-8
-require 'chef/provider/lwrp_base'
-require 'chef/provisioning/fog_driver/driver'
+require "chef/provider/lwrp_base"
+require "chef/provisioning/fog_driver/driver"
 
 class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
-
   use_inline_resources
 
   def whyrun_supported?
@@ -18,11 +16,11 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
     if current_resource_exists?
       converge_by "delete #{key_description}" do
         case new_driver.compute_options[:provider]
-        when 'DigitalOcean'
+        when "DigitalOcean"
           compute.destroy_ssh_key(@current_id)
-        when 'Joyent'
+        when "Joyent"
           compute.delete_key(@current_id)
-        when 'OpenStack', 'Rackspace'
+        when "OpenStack", "Rackspace"
           compute.key_pairs.destroy(@current_id)
         else
           compute.key_pairs.delete(new_resource.name)
@@ -57,12 +55,12 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       end
 
       case new_driver.compute_options[:provider]
-      when 'DigitalOcean'
-        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :openssh)]
-      when 'Joyent'
-        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :rfc4716md5fingerprint)]
-      when 'OpenStack', 'Rackspace'
-        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :openssh)]
+      when "DigitalOcean"
+        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, format: :openssh)]
+      when "Joyent"
+        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, format: :rfc4716md5fingerprint)]
+      when "OpenStack", "Rackspace"
+        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, format: :openssh)]
       else
         # “The nice thing about standards is that you have so many to
         # choose from.” - Andrew S. Tanenbaum
@@ -75,11 +73,11 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
         #
         # So compute both possible AWS fingerprints and check if either of
         # them matches.
-        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, :format => :fingerprint)]
+        new_fingerprints = [Cheffish::KeyFormatter.encode(desired_key, format: :fingerprint)]
         if RUBY_VERSION.to_f < 2.0
           if @@use_pkcs8.nil?
             begin
-              require 'openssl_pkcs8'
+              require "openssl_pkcs8"
               @@use_pkcs8 = true
             rescue LoadError
               Chef::Log.warn("The openssl_pkcs8 gem is not loaded: you may not be able to read key fingerprints created by some cloud providers.  gem install openssl_pkcs8 to fix!")
@@ -88,26 +86,26 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
           end
           if @@use_pkcs8
             new_fingerprints << Cheffish::KeyFormatter.encode(desired_private_key,
-                                  :format => :pkcs8sha1fingerprint)
+                                                              format: :pkcs8sha1fingerprint)
           end
         end
       end
 
-      if !new_fingerprints.any? { |f| compare_public_key f }
+      if new_fingerprints.none? { |f| compare_public_key f }
         if new_resource.allow_overwrite
           converge_by "update #{key_description} to match local key at #{new_resource.private_key_path}" do
             case new_driver.compute_options[:provider]
-            when 'DigitalOcean'
-              compute.create_ssh_key(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
-            when 'Joyent'
-              compute.create_key(name: new_resource.name, key: Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
-            when 'OpenStack'
-              compute.create_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
-            when 'Rackspace'
-              compute.create_keypair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
+            when "DigitalOcean"
+              compute.create_ssh_key(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
+            when "Joyent"
+              compute.create_key(name: new_resource.name, key: Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
+            when "OpenStack"
+              compute.create_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
+            when "Rackspace"
+              compute.create_keypair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
             else
               compute.key_pairs.get(new_resource.name).destroy
-              compute.import_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
+              compute.import_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
             end
           end
         else
@@ -121,16 +119,16 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       # Create key
       converge_by "create #{key_description} from local key at #{new_resource.private_key_path}" do
         case new_driver.compute_options[:provider]
-        when 'DigitalOcean'
-          compute.create_ssh_key(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
-        when 'Joyent'
-          compute.create_key(name: new_resource.name, key: Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
-        when 'OpenStack'
-          compute.create_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
-        when 'Rackspace'
-          compute.create_keypair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
+        when "DigitalOcean"
+          compute.create_ssh_key(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
+        when "Joyent"
+          compute.create_key(name: new_resource.name, key: Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
+        when "OpenStack"
+          compute.create_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
+        when "Rackspace"
+          compute.create_keypair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
         else
-          compute.import_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, :format => :openssh))
+          compute.import_key_pair(new_resource.name, Cheffish::KeyFormatter.encode(desired_key, format: :openssh))
         end
       end
     end
@@ -147,7 +145,7 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       private_key private_key_path do
         public_key_path resource.public_key_path
         if resource.private_key_options
-          resource.private_key_options.each_pair do |key,value|
+          resource.private_key_options.each_pair do |key, value|
             send(key, value)
           end
         end
@@ -174,12 +172,12 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
   end
 
   def current_resource_exists?
-    @current_resource.action != [ :delete ]
+    @current_resource.action != [:delete]
   end
 
   def compare_public_key(new)
-    c = @current_fingerprint.split[0,2].join(' ')
-    n = new.split[0,2].join(' ')
+    c = @current_fingerprint.split[0, 2].join(" ")
+    n = new.split[0, 2].join(" ")
     c == n
   end
 
@@ -208,20 +206,20 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
   end
 
   def load_current_resource
-    if !new_driver.kind_of?(Chef::Provisioning::FogDriver::Driver)
-      raise 'fog_key_pair only works with fog_driver'
+    unless new_driver.is_a?(Chef::Provisioning::FogDriver::Driver)
+      raise "fog_key_pair only works with fog_driver"
     end
     @current_resource = Chef::Resource::FogKeyPair.new(new_resource.name, run_context)
     case new_driver.provider
-    when 'DigitalOcean'
-      current_key_pair = compute.list_ssh_keys.body['ssh_keys'].select { |key| key['name'] == new_resource.name }.first
+    when "DigitalOcean"
+      current_key_pair = compute.list_ssh_keys.body["ssh_keys"].select { |key| key["name"] == new_resource.name }.first
       if current_key_pair
-        @current_id = current_key_pair['id']
+        @current_id = current_key_pair["id"]
         @current_fingerprint = current_key_pair ? compute.ssh_keys.get(@current_id).public_key : nil
       else
         current_resource.action :delete
       end
-    when 'Joyent'
+    when "Joyent"
       current_key_pair = begin
         compute.keys.get(new_resource.name)
       rescue Fog::Compute::Joyent::Errors::NotFound
@@ -230,17 +228,15 @@ class Chef::Provider::FogKeyPair < Chef::Provider::LWRPBase
       if current_key_pair
         @current_id = current_key_pair.name
         @current_fingerprint = if current_key_pair.respond_to?(:fingerprint)
-          current_key_pair.fingerprint
-        elsif current_key_pair.respond_to?(:key)
-          public_key, format = Cheffish::KeyFormatter.decode(current_key_pair.key)
-          public_key.fingerprint
-        else
-          nil
-        end
+                                 current_key_pair.fingerprint
+                               elsif current_key_pair.respond_to?(:key)
+                                 public_key, format = Cheffish::KeyFormatter.decode(current_key_pair.key)
+                                 public_key.fingerprint
+                               end
       else
         current_resource.action :delete
       end
-    when 'OpenStack', 'Rackspace'
+    when "OpenStack", "Rackspace"
       current_key_pair = compute.key_pairs.get(new_resource.name)
       if current_key_pair
         @current_id = current_key_pair.name
