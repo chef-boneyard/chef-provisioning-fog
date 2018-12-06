@@ -4,7 +4,6 @@ require "chef/provisioning/fog_driver/version"
 Gem::Specification.new do |s|
   s.name = "chef-provisioning-fog"
   s.version = Chef::Provisioning::FogDriver::VERSION
-  s.extra_rdoc_files = ["README.md", "LICENSE"]
   s.summary = "Driver for creating Fog instances in Chef Provisioning."
   s.description = s.summary
   s.authors     = ["John Keiser", "Chris McClimans", "Taylor Carpenter", "Wavell Watson", "JJ Asghar"]
@@ -36,6 +35,6 @@ Gem::Specification.new do |s|
   s.executables  = %w{}
 
   s.require_path = "lib"
-  s.files = %w{Gemfile Rakefile LICENSE README.md} + Dir.glob("*.gemspec") +
+  s.files = %w{Gemfile Rakefile LICENSE} + Dir.glob("*.gemspec") +
     Dir.glob("{distro,lib,tasks,spec}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }
 end
