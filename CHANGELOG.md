@@ -1,7 +1,7 @@
 # chef-provisioning-fog Change Log
 
-<!-- latest_release 0.26.2 -->
-## [0.26.2](https://github.com/chef/chef-provisioning-fog/tree/0.26.2) (2018-12-06)
+<!-- latest_release 0.26.3 -->
+## [0.26.3](https://github.com/chef/chef-provisioning-fog/tree/0.26.3) (2018-12-10)
 
 #### Merged Pull Requests
 - Slim the gem by not including the readme in the gem artifact [#230](https://github.com/chef/chef-provisioning-fog/pull/230) ([tas50](https://github.com/tas50))
