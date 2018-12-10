@@ -1,24 +1,21 @@
 # chef-provisioning-fog Change Log
 
-<!-- latest_release 0.26.3 -->
+<!-- latest_release -->
+<!-- latest_release -->
+<!-- release_rollup -->
+<!-- release_rollup -->
+<!-- latest_stable_release -->
 ## [0.26.3](https://github.com/chef/chef-provisioning-fog/tree/0.26.3) (2018-12-10)
 
 #### Merged Pull Requests
 - Slim the gem by not including the readme in the gem artifact [#230](https://github.com/chef/chef-provisioning-fog/pull/230) ([tas50](https://github.com/tas50))
-<!-- latest_release -->
-<!-- release_rollup since=0.26.1 -->
-### Changes not yet released to rubygems.org
-
-#### Merged Pull Requests
-- Slim the gem by not including the readme in the gem artifact [#230](https://github.com/chef/chef-provisioning-fog/pull/230) ([tas50](https://github.com/tas50)) <!-- 0.26.2 -->
-<!-- release_rollup -->
 <!-- latest_stable_release -->
+
 ## [0.26.1](https://github.com/chef/chef-provisioning-fog/tree/0.26.1) (2018-04-24)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.26.0...0.26.1)
 
 - Relax the Cheffish dependency to allow 14.X
 - Fix variable names
-<!-- latest_stable_release -->
 
 ## [0.26.0](https://github.com/chef/chef-provisioning-fog/tree/0.26.0) (2017-10-23)
 [Full Changelog](https://github.com/chef/chef-provisioning-fog/compare/v0.25.1...0.26.0)
